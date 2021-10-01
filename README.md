@@ -1,5 +1,5 @@
 # Console-editor
-A simple console text editor made in Python using the curses library
+A simple console text editor made in Python 3.8 using the curses library
 
 Both files(_text_editor.py_ and _utils.py_) need to be in the same folder in order for the editor to work. To run it run _text_editor.py_.
 
