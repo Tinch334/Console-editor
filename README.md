@@ -1,7 +1,7 @@
 # Console-editor
 A simple console text editor made in Python using the curses library
 
-Both files need to be in the same folder in order for the editor to work. To run it run _text_editor.py_.
+Both files(_text_editor.py_ and _utils.py_) need to be in the same folder in order for the editor to work. To run it run _text_editor.py_.
 
 __Additional notes:__
 * The save and open function use a relative path. Meaning they use the path from the directory in which the program files are located.
