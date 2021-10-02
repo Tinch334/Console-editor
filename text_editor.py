@@ -29,33 +29,50 @@ class SearchMatch:
     def current_match_line_handler(self, change, class_ref):
         self.current_match_number_in_line += change
 
-        #Check if there are any remaining matches in the current line.
-        if self.current_match_number_in_line >= len(self.line_and_index[class_ref.cursor_pos_y]) or self.current_match_number_in_line < 0:
-            #Move to the corresponding line depending on what the change was.
-            self.current_match_line += change
+        #Check whether we are on a line with matches, if so cycle through them normally.
+        if class_ref.cursor_pos_y in self.line_and_index:
+            #Check if we are on a line with matches. If so check if there are any remaining matches in the current line.
+            if self.current_match_number_in_line >= len(self.line_and_index[class_ref.cursor_pos_y]) or self.current_match_number_in_line < 0:
+                #Move to the corresponding line depending on what the change was.
+                self.current_match_line += change
 
-            #If we get to the end or the beginning of the file go to the other end.
-            if self.current_match_line < 0:
-                self.current_match_line = len(self.line_and_index) - 1
-            elif self.current_match_line >= len(self.line_and_index):
-                self.current_match_line = 0
+                #If we get to the end or the beginning of the file go to the other end.
+                if self.current_match_line < 0:
+                    self.current_match_line = len(self.line_and_index) - 1
+                elif self.current_match_line >= len(self.line_and_index):
+                    self.current_match_line = 0
 
-            #If we change lines in which match the cursor ends depends on whether we are moving "up" or "down". If we are
-            #moving down we simply start at the first match in the next line. However if we are moving up we start on the last
-            #match of the previous line. To do this we set "current_match_number_in_line" to the length of the list of matches
-            #in that line -1.
-            if change > 0:
-                self.current_match_number_in_line = 0
-            else:
-                self.current_match_number_in_line = len(self.line_and_index[list(self.line_and_index.keys())[self.current_match_line]]) - 1
+                #If we change lines in which match the cursor ends depends on whether we are moving "up" or "down". If we are
+                #moving down we simply start at the first match in the next line. However if we are moving up we start on the
+                #last match of the previous line. To do this we set "current_match_number_in_line" to the length of the list
+                #of matches in that line -1.
+                if change > 0:
+                    self.current_match_number_in_line = 0
+                else:
+                    self.current_match_number_in_line = len(self.line_and_index[list(self.line_and_index.keys())[self.current_match_line]]) - 1
 
-            #Move the cursor to the corresponding line.
-            class_ref.cursor_pos_y = list(self.line_and_index.keys())[self.current_match_line]
+                #Move the cursor to the corresponding line.
+                class_ref.cursor_pos_y = list(self.line_and_index.keys())[self.current_match_line]
 
-        #Update the x position of the cursor. The x position of the cursor is set to the last char of the matched word in case
-        #it's out of the screen so it will scroll and show the match.
-        class_ref.cursor_pos_x = self.line_and_index[class_ref.cursor_pos_y][self.current_match_number_in_line] + self.matched_text_length    
+            #Update the x position of the cursor. The x position of the cursor is set to the last char of the matched word
+            #in case it's out of the screen so it will scroll and show the match.
+            class_ref.cursor_pos_x = self.line_and_index[class_ref.cursor_pos_y][self.current_match_number_in_line] + self.matched_text_length
 
+        #Otherwise go to the closest match.
+        else:
+            #Set the first match as the initial closest line.
+            closest_line = list(self.line_and_index.keys())[0]
+
+            for line in list(self.line_and_index.keys()):
+                #If the difference between the cursor and the line is smaller than the difference to the current closest line
+                #we have found a new closest line.
+                if abs(class_ref.cursor_pos_y - line) < abs(class_ref.cursor_pos_y - closest_line):
+                    closest_line = line
+
+            class_ref.cursor_pos_y = closest_line
+
+            #Update the x position of the cursor to the first match in that line.
+            class_ref.cursor_pos_x = self.line_and_index[closest_line][0] + self.matched_text_length
 
 
 #A simple prompt, with default text and the option to change it for a specified period of time. Beware that the prompt class
