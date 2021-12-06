@@ -11,6 +11,7 @@ class Line:
 
 
 
+#This class is what makes the search function work. It handles all the search cursor logic.
 @dataclass
 class SearchMatch:
     #This dictionary contains the line and index of a match. The line is the key for the dictionary entry.
@@ -188,6 +189,11 @@ class TextEditor(utils.CursesUtils):
         self.find_results = SearchMatch()
 
 
+        #####EXIT CONFIRMATION#####
+        #Counts how many times the buffer's been modified since the file was loaded or saved. That way we can determine if
+        #are unsaved changes.
+        self.buffer_modification_counter = 0
+
         #####NOTES#####
         """
         Something very important to remember about the editor is that the cursor and text are independent from the displayed
@@ -228,6 +234,8 @@ class TextEditor(utils.CursesUtils):
 
             #Disable the find function since the buffer was modified.
             self.find_results.find_enabled = False
+            #Increment the buffer modification counter.
+            self.buffer_modification_counter += 1
 
         #Backspace
         elif self.key == 8:
@@ -255,6 +263,8 @@ class TextEditor(utils.CursesUtils):
 
             #Disable the find function since the buffer was modified.
             self.find_results.find_enabled = False
+            #Increment the buffer modification counter.
+            self.buffer_modification_counter += 1
 
         #"SUPR" key.
         elif self.key == curses.KEY_DC:
@@ -271,6 +281,8 @@ class TextEditor(utils.CursesUtils):
 
             #Disable the find function since the buffer was modified.
             self.find_results.find_enabled = False
+            #Increment the buffer modification counter.
+            self.buffer_modification_counter += 1
 
         #Enter key
         #The actual code given by the enter key is 10, however the rest are left here for compatibility. Beware that
@@ -293,6 +305,8 @@ class TextEditor(utils.CursesUtils):
 
             #Disable the find function since the buffer was modified.
             self.find_results.find_enabled = False
+            #Increment the buffer modification counter.
+            self.buffer_modification_counter += 1
 
         #Moves the cursor. Before doing so check that there's text to move it to.
         elif self.key == curses.KEY_LEFT:
@@ -426,7 +440,6 @@ class TextEditor(utils.CursesUtils):
             if file == None:
                 return
             else:
-                
                 #Get complete filepath.
                 path = os.path.join(os.getcwd(), file)
     
@@ -599,15 +612,22 @@ class TextEditor(utils.CursesUtils):
     #Shows the status and help bar.
     def status_bar(self):
         #Automatically determines what the displayed filename should be, depending on whether or not a name has been given.
-        left_status_text = (self.file if self.file != None else "[No filename]") + " - " + str(len(self.text)) + " lines"
+        #Also displays whether or not the file is "dirty", if it's been modified since loading or saving. Shows the FPS meter,
+        #it's mainly there for efficiency testing.
+        filename_text = self.file if self.file != None else "[No filename]"
+        line_text = str(len(self.text)) + " lines"
+        modified_text = " (modified)" if self.buffer_modification_counter > 0 else ""
+        fps_text = "FPS: " + str(self.fps_meter.fps_final_count)
+        left_status_text = filename_text + " - " + line_text + modified_text + " - " + fps_text
+        
+        #The cursor position indicator.
         right_status_text = str(self.cursor_pos_y + 1) + "," + str(self.cursor_pos_x + 1) + " "
 
-        #Status bar proper.
-        self.addstrex(self.max_displayed_lines, 0, " " * self.x_size, self.get_colour("BLUE_BLUE"))
-        self.stdscr.addstr(self.max_displayed_lines, 0, left_status_text, self.get_colour("WHITE_BLUE"))
-        self.stdscr.addstr(self.max_displayed_lines, self.x_size - len(right_status_text), right_status_text, self.get_colour("WHITE_BLUE"))
+        #The complete status bar.
+        status_text = left_status_text + " " * (self.x_size - len(left_status_text) - len(right_status_text)) + right_status_text
 
-        self.stdscr.addstr(self.max_displayed_lines, 25, "FPS: " + str(self.fps_meter.fps_final_count), self.get_colour("WHITE_BLUE"))
+        #Print the status bar
+        self.addstrex(self.max_displayed_lines, 0, status_text, self.get_colour("WHITE_BLUE"))
 
         #If the editor prompt is enabled print it.
         if self.prompt.prompt_enabled:
@@ -638,13 +658,17 @@ class TextEditor(utils.CursesUtils):
 
             #Change the prompt to display how many bytes have been written.
             if prompt:
-                self.prompt.change_prompt(str(os.path.getsize(path)) + " bytes written to disk")
+                self.prompt.change_prompt("{} bytes written to disk".format(str(os.path.getsize(path))))
+
+            #Reset the modification counter.
+            self.buffer_modification_counter = 0
 
             return 1
 
         #In case an unexpected error occurs.
         except:
             self.prompt.change_prompt("Failed to save file, please try again")
+
 
 
     #Loads the file in the given path, returns 1 if it was successful.
@@ -667,14 +691,17 @@ class TextEditor(utils.CursesUtils):
                 self.cursor_pos_y = 0
                 self.cursor_pos_x = 0
 
+                if prompt:
+                    self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
+
+                #Reset the modification counter.
+                self.buffer_modification_counter = 0
+
                 return 1
 
             #In case an unexpected error occurs.
             except:
                 self.prompt.change_prompt("Failed to read file, please try again")
-
-            if prompt:
-                self.prompt.change_prompt("Loaded " + str(os.path.getsize(path)) + " bytes from " + self.file)
         else:
             self.prompt.change_prompt("The entered file doesn't exist")
 

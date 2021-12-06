@@ -65,7 +65,7 @@ class CursesUtils():
         self.y_size, self.x_size = self.stdscr.getmaxyx()
 
 
-    #Prints a centred string at the specified hight. If "fill" is True then both sides of the printed text will be filled with
+    #Prints a centred string at the specified height. If "fill" is True then both sides of the printed text will be filled with
     #the character in "fill_char", using the provided colour.
     def addctstr(self, y_pos, text, colour, fill = False, fill_char = " "):
         #Shortens the text in case it's larger than the console.
