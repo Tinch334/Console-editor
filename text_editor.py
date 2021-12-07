@@ -247,6 +247,7 @@ class TextEditor(utils.CursesUtils):
                 self.text[self.cursor_pos_y].line_text = text_with_removed_char + text_after
 
                 self.cursor_pos_x -= 1
+
             #If at the begging of a line and not at the first line. The current line's text should join the end of the line
             #above. This also works for "deleting" empty lines, since you are appending an empty string.
             elif self.cursor_pos_x == 0 and self.cursor_pos_y > 0:
@@ -360,22 +361,31 @@ class TextEditor(utils.CursesUtils):
                 self.find_results.current_match_line_handler(-1, self)
             else:
                 #Move the y cursor "up" by the size of the screen.
-                self.cursor_pos_y -= self.max_displayed_lines
+                new_cursor_pos = self.cursor_pos_y - self.max_displayed_lines
 
                 #If the cursor goes past the beginning of the text set it to the first line.
-                if self.cursor_pos_y < 0:
-                    self.cursor_pos_y = 0
+                if new_cursor_pos < 0:
+                    new_cursor_pos = 0
+
+                #So that the cursor moves to the correct x position. This is required because when we change lines we have
+                #to handle the cursor, otherwise we'll be prone to getting index errors.
+                self.interline_cursor_handler(-abs(new_cursor_pos - self.cursor_pos_y))
+
 
         elif self.key == curses.KEY_NPAGE:
             if self.find_results.find_enabled:
                 self.find_results.current_match_line_handler(1, self)
             else:
                 #Move the y cursor "down" by the size of the screen.
-                self.cursor_pos_y += self.max_displayed_lines
+                new_cursor_pos = self.cursor_pos_y + self.max_displayed_lines
 
                 #If the cursor goes past the end of the text set it to the last line.
-                if self.cursor_pos_y >= len(self.text):
-                    self.cursor_pos_y = len(self.text) - 1
+                if new_cursor_pos >= len(self.text):
+                    new_cursor_pos = len(self.text) - 1
+
+                #So that the cursor moves to the correct x position. This is required because when we change lines we have
+                #to handle the cursor, otherwise we'll be prone to getting index errors.
+                self.interline_cursor_handler(abs(new_cursor_pos - self.cursor_pos_y))
 
 
         #"ESC" key.
@@ -418,13 +428,17 @@ class TextEditor(utils.CursesUtils):
             path = os.path.join(os.getcwd(), self.file)
 
             #Save the file in the given path.
-            self.save_file(path, True)
+            if self.save_file(path) == 0:
+                #Change the prompt to display how many bytes have been written.
+                self.prompt.change_prompt("{} bytes written to disk".format(str(os.path.getsize(path))))
+            else:
+                self.prompt.change_prompt("Failed to save file, please try again")
 
         #"CTRL+O" key combination.
         elif self.key == ord("O") - 64:
             #Save the file the user is currently working on. If it has a name.
             if self.file != None:
-                self.save_file(os.path.join(os.getcwd(), self.file), False)
+                self.save_file(os.path.join(os.getcwd(), self.file))
            
             #Disable editor prompt.
             self.prompt.toggle_prompt()
@@ -442,15 +456,24 @@ class TextEditor(utils.CursesUtils):
             else:
                 #Get complete filepath.
                 path = os.path.join(os.getcwd(), file)
-    
-                #Open the file in the given path.
-                if self.load_file(path, True) == 1:
-                    #If the file could be opened set the filename.
-                    self.file = file
 
-                #Reset the cursor position, so it's at the begging of the file.
-                self.cursor_pos_y = 0
-                self.cursor_pos_x = 0
+                #Make sure the path we are trying to read exists.
+                if os.path.lexists(path):
+                    #Open the file in the given path.
+                    if self.load_file(path, True) == 0:
+                        #If the file could be opened set the filename.
+                        self.file = file
+                        #Change the prompt to display how many bytes have been red.
+                        self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
+                    else:
+                        self.prompt.change_prompt("Failed to read file, please try again")
+
+
+                    #Reset the cursor position, so it's at the begging of the file.
+                    self.cursor_pos_y = 0
+                    self.cursor_pos_x = 0
+                else:
+                    self.prompt.change_prompt("The entered file doesn't exist")
 
         #"CTRL+F" key combination.
         elif self.key == ord("F") - 64:
@@ -529,6 +552,7 @@ class TextEditor(utils.CursesUtils):
         self.cursor_pos_y += line_index
 
 
+    #Displays the buffer and cursor. Also handles search function highlighting.
     def display(self):
         line_count = len(self.text)
         #The number of characters required to fit the line counter.
@@ -550,7 +574,7 @@ class TextEditor(utils.CursesUtils):
 
         #Prints the text, matched text from the found function and the cursor.
         for y in range(self.vertical_scroll_line, self.vertical_scroll_line + self.max_displayed_lines):
-            #This is so that if there are less than "self.vertical_scroll_line + self.max_displayed_lines" lines(An empty file)
+            #This is so that if there are less than "self.vertical_scroll_line + self.max_displayed_lines" lines(Empty lines)
             #the program doesn't try to address non existing lines. Instead it shows "~" to denote no lines.
             if y > line_count - 1:
                 self.stdscr.addstr(print_y, 0, "~", self.get_colour("WHITE_BLACK"))
@@ -565,7 +589,7 @@ class TextEditor(utils.CursesUtils):
                 #it as little as possible.
                 #Furthermore make sure that find mode is enabled, to avoid printing anything left in the dictionary after the
                 #search has finished.
-                if y in self.find_results.line_and_index and self.find_results.find_enabled:
+                if self.find_results.find_enabled and y in self.find_results.line_and_index:
                     matched_text_indexes = self.find_results.line_and_index[y]
                 else:
                     matched_text_indexes = []
@@ -641,7 +665,7 @@ class TextEditor(utils.CursesUtils):
         self.status_bar()
 
     #Saves the current file to the given path, returns 1 if it was successful.
-    def save_file(self, path, prompt = True):
+    def save_file(self, path):
         file_text = ""
 
         try:
@@ -656,54 +680,42 @@ class TextEditor(utils.CursesUtils):
             file.write(file_text)
             file.close()
 
-            #Change the prompt to display how many bytes have been written.
-            if prompt:
-                self.prompt.change_prompt("{} bytes written to disk".format(str(os.path.getsize(path))))
-
             #Reset the modification counter.
             self.buffer_modification_counter = 0
 
-            return 1
+            return 0
 
         #In case an unexpected error occurs.
         except:
-            self.prompt.change_prompt("Failed to save file, please try again")
-
+            return 1
 
 
     #Loads the file in the given path, returns 1 if it was successful.
     def load_file(self, path, prompt = True):
-        #Make sure the path we are trying to read exists.
-        if os.path.lexists(path):
-            try:
-                #Empty the text only if the file we are trying to read exists.
-                self.text = []
+        try:
+            #Empty the text only if the file we are trying to read exists.
+            self.text = []
 
-                file = open(path, "r")
+            file = open(path, "r")
 
-                for line in file.readlines():
-                    line = line.replace("\n", "")
-                    self.text.append(Line(line))
+            for line in file.readlines():
+                line = line.replace("\n", "")
+                self.text.append(Line(line))
 
-                file.close()
+            file.close()
 
-                #Reset the cursor so it starts at the begging of the file.
-                self.cursor_pos_y = 0
-                self.cursor_pos_x = 0
+            #Reset the cursor so it starts at the beginning of the file.
+            self.cursor_pos_y = 0
+            self.cursor_pos_x = 0
 
-                if prompt:
-                    self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
+            #Reset the modification counter.
+            self.buffer_modification_counter = 0
 
-                #Reset the modification counter.
-                self.buffer_modification_counter = 0
+            return 0
 
-                return 1
-
-            #In case an unexpected error occurs.
-            except:
-                self.prompt.change_prompt("Failed to read file, please try again")
-        else:
-            self.prompt.change_prompt("The entered file doesn't exist")
+        #In case an unexpected error occurs.
+        except:
+            return 1
 
 
 
