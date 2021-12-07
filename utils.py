@@ -99,7 +99,7 @@ class CursesUtils():
 
 #Allows for basic singe line input. Returns the entered string. Still requires the program loop to function.
 class BasicInput():
-    def __init__(self, class_ref, y_pos, x_pos, prompt, colour):
+    def __init__(self, class_ref, y_pos, x_pos, prompt, colour, cursor_colour, cursor_colour_over_text):
         #####ARGUMENTS#####
         #A reference to the class that called the function.
         self.class_ref = class_ref
@@ -111,6 +111,9 @@ class BasicInput():
         self.prompt = prompt
         #The colour for the prompt and entered text.
         self.colour = colour
+        #The colour of the cursor.
+        self.cursor_colour = cursor_colour
+        self.cursor_colour_over_text = cursor_colour_over_text
 
         #####CLASS VARIABLES#####
         self.text = ""
@@ -197,9 +200,9 @@ class BasicInput():
 
         #Print the cursor. Detect if you are in the last char and react accordingly.
         if self.cursor_pos == len(self.text):
-            self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), " ", self.class_ref.get_colour("WHITE_WHITE"))
+            self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), " ", self.cursor_colour)
         else:
-            self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), self.text[self.cursor_pos], self.class_ref.get_colour("BLACK_WHITE"))
+            self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), self.text[self.cursor_pos], self.cursor_colour_over_text)
 
 
 

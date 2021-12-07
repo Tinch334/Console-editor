@@ -198,7 +198,6 @@ class TextEditor(utils.CursesUtils):
         #####CONFIGURATION FILE#####
         self.config_file = None
 
-
         #####NOTES#####
         """
         Something very important to remember about the editor is that the cursor and text are independent from the displayed
@@ -424,7 +423,7 @@ class TextEditor(utils.CursesUtils):
                 #Disable editor prompt.
                 self.prompt.toggle_prompt()
 
-                basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour("WHITE_BLACK"))
+                basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
                 #The "basic_input" method halts the program.
                 file = basic_input.basic_input()
 
@@ -457,7 +456,7 @@ class TextEditor(utils.CursesUtils):
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
-            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour("WHITE_BLACK"))
+            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
             #The "basic_input" method halts the program.
             file = basic_input.basic_input()
 
@@ -494,7 +493,7 @@ class TextEditor(utils.CursesUtils):
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
-            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour("WHITE_BLACK"))
+            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
             #The "basic_input" method halts the program.
             pattern_to_find = basic_input.basic_input()
 
