@@ -492,6 +492,10 @@ class TextEditor(utils.CursesUtils):
                 #Remove any previous matched text.
                 self.find_results.line_and_index = {}
 
+                #Used to display how many matches were found using the prompt. It's more efficient to simply have a counter
+                #than accessing a dictionary .
+                match_counter = 0
+
                 #Gets every match in a line and puts it in an array. Then that array is added to the dictionary using the line
                 #as it's key.
                 for y in range(0, len(self.text)):
@@ -502,9 +506,11 @@ class TextEditor(utils.CursesUtils):
 
                     if line_matches != []:
                         self.find_results.line_and_index[y] = line_matches
+                        #Add the lines matches to the counter.
+                        match_counter += len(line_matches)
 
                 #Changes the prompt to show how many matches were found for the entered pattern.
-                self.prompt.change_prompt("Found {} matches for \"{}\"".format(len(self.find_results.line_and_index), pattern_to_find))
+                self.prompt.change_prompt("Found {} matches for \"{}\"".format(match_counter, pattern_to_find))
 
                 if len(self.find_results.line_and_index) != 0:
                     #Set the length of the current matched string.
