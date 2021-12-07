@@ -12,4 +12,4 @@ __TODO:__
 - [ ] Add tabulations
 - [ ] Add save as and exit confirmation
 - [ ] Add syntax highlighting
-- [ ] Add configuration file
+- [x] Add configuration file
