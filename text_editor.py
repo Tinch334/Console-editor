@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-import utils, curses, curses.ascii, math, os, re
+import utils, curses, curses.ascii, math, os, re, yaml
 
 
 
@@ -188,17 +188,28 @@ class TextEditor(utils.CursesUtils):
         """
         self.find_results = SearchMatch()
 
-
         #####EXIT CONFIRMATION#####
         #Counts how many times the buffer's been modified since the file was loaded or saved. That way we can determine if
         #are unsaved changes.
         self.buffer_modification_counter = 0
+        #Used to count how many times a certain key combination that would result in losing unsaved changes has been pressed.
+        self.confirmation_counter = 0
+
+        #####CONFIGURATION FILE#####
+        self.config_file = None
+
 
         #####NOTES#####
         """
         Something very important to remember about the editor is that the cursor and text are independent from the displayed
         text. The displayed text just matches wherever the cursor is, via "scroll_handler".
         """
+
+    #The setup preformed before the editor starts.
+    def setup(self):
+        #Loads the configuration file.
+        with open("config.yaml", "r") as f:
+            self.config_file = yaml.safe_load(f)
 
 
     def editor(self):
@@ -219,7 +230,7 @@ class TextEditor(utils.CursesUtils):
 
 
     def detect_key(self):
-        #Inserting text characters, this range covers all of extended ASCII.
+        #Text characters, this range covers all of extended ASCII.
         if self.key >= 32 and self.key <= 253:
             #Insert the given char at the current cursor position. Since python strings are immutable we create a new string
             #consisting of the previous string split where the cursor is plus the added character.
@@ -400,6 +411,9 @@ class TextEditor(utils.CursesUtils):
 
         #"CTRL+Q" - TEMPORARY
         elif self.key == ord("Q") - 64:
+            if self.buffer_modification_counter > 0:
+                pass
+
             curses.endwin()
             quit()
 
@@ -577,13 +591,21 @@ class TextEditor(utils.CursesUtils):
         #The index for the matched text in the current line. If there's no matched text on the line it's set to "None".
         matched_text_index = 0
 
+        #Since all the colours are going to be used a significant number of times they are stored in variables. It would be
+        #inefficient to access a dictionary several hundred times per cycle.
+        text_colour = self.config_file["TEXT-COLOUR"]["text-colour"]
+        normal_cursor_colour = self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]
+        over_text_cursor_colour = self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]
+        find_match_colour = self.config_file["TEXT-COLOUR"]["find-match-colour"]
+        line_colour = self.config_file["EDITOR-COLOUR"]["line-colour"]
+        empty_line_colour = self.config_file["EDITOR-COLOUR"]["empty-line-colour"]
 
         #Prints the text, matched text from the found function and the cursor.
         for y in range(self.vertical_scroll_line, self.vertical_scroll_line + self.max_displayed_lines):
             #This is so that if there are less than "self.vertical_scroll_line + self.max_displayed_lines" lines(Empty lines)
             #the program doesn't try to address non existing lines. Instead it shows "~" to denote no lines.
             if y > line_count - 1:
-                self.stdscr.addstr(print_y, 0, "~", self.get_colour("WHITE_BLACK"))
+                self.stdscr.addstr(print_y, 0, "~", self.get_colour(empty_line_colour))
 
             else:
                 line = self.text[y]
@@ -603,7 +625,7 @@ class TextEditor(utils.CursesUtils):
                 #Print line number. Since we're printing y + 1 we must also use y + 1 in the length calculation with the 
                 #logarithm. This also solves the problem with index 0 since 0 + 1 = 1.
                 line_number_text = " " * (line_display_width - (int(math.log10(y + 1)) + 1)) + str(y + 1)
-                self.stdscr.addstr(print_y, 0, line_number_text, self.get_colour("BLACK_WHITE"))
+                self.stdscr.addstr(print_y, 0, line_number_text, self.get_colour(line_colour))
 
                 #Print line. The text we want to print is the one between the horizontal scroll and the end of the screen            
                 for x in range(self.horizontal_scroll_character, self.horizontal_scroll_character + self.max_text_width):
@@ -613,14 +635,14 @@ class TextEditor(utils.CursesUtils):
 
                     char = line.line_text[x]
 
-                    self.stdscr.addstr(print_y, print_x, char, self.get_colour("WHITE_BLACK"))
+                    self.stdscr.addstr(print_y, print_x, char, self.get_colour(text_colour))
 
                     #If the current line has matched text that has to be highlighted, and the current x char is on the correct
                     #range highlight it by printing over the original white text.
                     if matched_text_indexes != []:
                         for match in matched_text_indexes:
                             if x >= match and x < match + self.find_results.matched_text_length:
-                                self.stdscr.addstr(print_y, print_x, char, self.get_colour("WHITE_BLUE"))
+                                self.stdscr.addstr(print_y, print_x, char, self.get_colour(find_match_colour))
 
                     print_x += 1
 
@@ -632,9 +654,9 @@ class TextEditor(utils.CursesUtils):
 
                 #Detect if you are in the last char or and react accordingly.
                 if self.cursor_pos_x == len(line.line_text):
-                    self.stdscr.addstr(print_y, cursor_x_print_pos, " ", self.get_colour("WHITE_WHITE"))
+                    self.stdscr.addstr(print_y, cursor_x_print_pos, " ", self.get_colour(normal_cursor_colour))
                 else:
-                    self.stdscr.addstr(print_y, cursor_x_print_pos, line.line_text[self.cursor_pos_x], self.get_colour("BLACK_WHITE"))
+                    self.stdscr.addstr(print_y, cursor_x_print_pos, line.line_text[self.cursor_pos_x], self.get_colour(over_text_cursor_colour))
 
             print_y += 1
             
@@ -656,12 +678,14 @@ class TextEditor(utils.CursesUtils):
         #The complete status bar.
         status_text = left_status_text + " " * (self.x_size - len(left_status_text) - len(right_status_text)) + right_status_text
 
+        #Note: In this case we directly access the dictionary instead of using a variable because this only occurs once per
+        #program loop.
         #Print the status bar
-        self.addstrex(self.max_displayed_lines, 0, status_text, self.get_colour("WHITE_BLUE"))
+        self.addstrex(self.max_displayed_lines, 0, status_text, self.get_colour(self.config_file["EDITOR-COLOUR"]["status-bar-colour"]))
 
         #If the editor prompt is enabled print it.
         if self.prompt.prompt_enabled:
-            self.stdscr.addstr(self.max_displayed_lines + 1, 0, self.prompt.prompt, self.get_colour("WHITE_BLACK"))
+            self.stdscr.addstr(self.max_displayed_lines + 1, 0, self.prompt.prompt, self.get_colour(self.config_file["EDITOR-COLOUR"]["prompt-colour"]))
 
 
     #Has all the functions that need to be called to properly display all screen elements. It's mostly for ease of use of the
@@ -669,6 +693,7 @@ class TextEditor(utils.CursesUtils):
     def print_screen(self):
         self.display()
         self.status_bar()
+
 
     #Saves the current file to the given path, returns 1 if it was successful.
     def save_file(self, path):
@@ -726,4 +751,5 @@ class TextEditor(utils.CursesUtils):
 
 
 text_editor = TextEditor()
+text_editor.setup()
 text_editor.editor()

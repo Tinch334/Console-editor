@@ -1,0 +1,14 @@
+TEXT-COLOUR:
+    text-colour: WHITE_BLACK #The colour of the text being edited.
+    normal-cursor-colour: WHITE_WHITE #The colour of the cursor when there's no text underneath it.
+    over-text-cursor-colour: BLACK_WHITE #The colour of the cursor when there's text underneath it, consequently determines the colour of the text under the cursor.
+    find-match-colour: WHITE_BLUE #The colour of text matched by the search function.
+
+EDITOR-COLOUR:
+    line-colour: BLACK_WHITE #The colour of a line with a number.
+    empty-line-colour: WHITE_BLACK #The colour of a line without a number.
+    status-bar-colour: WHITE_BLUE #The colour of the status-bar.
+    prompt-colour: WHITE_BLACK #The colour of the editor prompt.
+
+MISC:
+    confirmation-key-count: 3 #How many times a key has to be pressed to confirm an action.
