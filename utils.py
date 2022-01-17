@@ -1,4 +1,4 @@
-import curses, time, types
+import curses, time
 
 
 
