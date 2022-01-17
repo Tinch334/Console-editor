@@ -200,10 +200,8 @@ class TextEditor(utils.CursesUtils):
             #Update the desired cursor position
             self.desired_cursor_x_pos = self.cursor_pos_x
 
-            #Disable the find function since the buffer was modified.
-            self.find_results.find_enabled = False
-            #Increment the buffer modification counter.
-            self.buffer_modification_counter += 1
+            #Disables find function and increments buffer modification counter.
+            self.modification_handler()
 
         #Backspace
         elif self.key == 8:
@@ -230,10 +228,8 @@ class TextEditor(utils.CursesUtils):
             #Update the desired cursor position
             self.desired_cursor_x_pos = self.cursor_pos_x
 
-            #Disable the find function since the buffer was modified.
-            self.find_results.find_enabled = False
-            #Increment the buffer modification counter.
-            self.buffer_modification_counter += 1
+            #Disables find function and increments buffer modification counter.
+            self.modification_handler()
 
         #"SUPR" key.
         elif self.key == curses.KEY_DC:
@@ -248,10 +244,8 @@ class TextEditor(utils.CursesUtils):
                 self.text[self.cursor_pos_y].line_text += self.text[self.cursor_pos_y + 1].line_text
                 self.text.pop(self.cursor_pos_y + 1)
 
-            #Disable the find function since the buffer was modified.
-            self.find_results.find_enabled = False
-            #Increment the buffer modification counter.
-            self.buffer_modification_counter += 1
+            #Disables find function and increments buffer modification counter.
+            self.modification_handler()
 
         #Enter key
         #The actual code given by the enter key is 10, however the rest are left here for compatibility. Beware that
@@ -272,10 +266,8 @@ class TextEditor(utils.CursesUtils):
             self.cursor_pos_x = 0
             self.desired_cursor_x_pos = 0
 
-            #Disable the find function since the buffer was modified.
-            self.find_results.find_enabled = False
-            #Increment the buffer modification counter.
-            self.buffer_modification_counter += 1
+            #Disables find function and increments buffer modification counter.
+            self.modification_handler()
 
         #Moves the cursor. Before doing so check that there's text to move it to.
         elif self.key == curses.KEY_LEFT:
@@ -368,9 +360,18 @@ class TextEditor(utils.CursesUtils):
 
         #"CTRL+Q" - TEMPORARY
         elif self.key == ord("Q") - 64:
-            if self.buffer_modification_counter > 0:
-                pass
+            required_confirmation = self.config_file["MISC"]["confirmation-key-count"]
 
+            #If the buffer has been modified since the last save check if "Ctrl+Q" has been pressed the required number of
+            #times to exit.
+            if self.buffer_modification_counter > 0:
+                if self.confirmation_counter < required_confirmation:
+                    self.prompt.change_prompt("File has unsaved changes, press Ctrl+Q {} more times to quit".format(required_confirmation - self.confirmation_counter))
+                    self.confirmation_counter += 1
+
+                    return
+
+            #Properly exit curses and exit the program.
             curses.endwin()
             quit()
 
@@ -392,6 +393,17 @@ class TextEditor(utils.CursesUtils):
         #NOTE: "ALT" keys use the same principle as the "CTRL" keys, but you add 352 instead of subtracting 64.
         elif self.key == ord("S") + 352:
             self.save_handler(True)
+
+
+    #Handles everting that happens whenever the buffer's modified.
+    def modification_handler(self):
+        #Increment the buffer modification counter.
+        self.buffer_modification_counter += 1
+        #Whenever the buffer is modified we also reset the number of times "Ctrl+Q" has to be pressed to exit.
+        self.confirmation_counter = 0
+
+        #Disable the find function since the buffer was modified.
+        self.find_results.find_enabled = False
 
 
     """
