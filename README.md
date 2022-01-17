@@ -10,6 +10,6 @@ __Additional notes:__
 
 __TODO:__
 - [ ] Add tabulations
-- [ ] Add save as and exit confirmation
+- [x] Add save as and exit confirmation
 - [ ] Add syntax highlighting
 - [x] Add configuration file
