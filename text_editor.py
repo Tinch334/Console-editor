@@ -1,5 +1,5 @@
+import utils, curses, curses.ascii, math, os, re, yaml, sys, getopt
 from dataclasses import dataclass, field
-import utils, curses, curses.ascii, math, os, re, yaml
 
 
 
@@ -158,8 +158,48 @@ class TextEditor(utils.CursesUtils):
         text. The displayed text just matches wherever the cursor is, via "scroll_handler".
         """
 
+
+    #Parse any given command line arguments.
+    def parse(self):
+        #Short and long version of all options.
+        short_options = "vh"
+        long_options = ["version", "help"]
+
+        version_text = "Text editor - Version 0.1 - January 2021\n"
+        usage_text = "Usage: python {} [-v/--version] | [-h/--help] <file>\n".format(sys.argv[0])
+
+        options, arguments = getopt.getopt(sys.argv[1:], short_options, long_options)
+
+        #Parse all the options.
+        for o, a in options:
+            if o in ("-v", "--version"):
+                raise SystemExit(version_text)
+            elif o in ("-h", "--help"):
+                raise SystemExit(usage_text)
+            else:
+                raise SystemExit(usage_text)
+
+        #If more than one file was given as an argument show usage and exit.
+        if len(arguments) > 1:
+            raise SystemExit(usage_text)
+
+        if len(arguments) == 1:
+            path = os.path.join(os.getcwd(), arguments[0])
+
+            #If a file was passed as an argument check if it exists. If so open it, otherwise simply set the given name as the
+            #name of the file that's being edited.
+            if os.path.lexists(path):
+                self.load_file(path, False)
+            else:
+                self.file = arguments[0]
+
+
+
     #The setup preformed before the editor starts.
     def setup(self):
+        #Parses arguments.
+        self.parse()
+
         #Loads the configuration file.
         with open("config.yaml", "r") as f:
             self.config_file = yaml.safe_load(f)
