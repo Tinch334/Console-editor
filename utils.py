@@ -1,4 +1,4 @@
-import curses, time
+import curses, time, types
 
 
 
@@ -9,7 +9,7 @@ class CursesUtils():
 
         #Configure the console
         curses.noecho()
-        curses.cbreak()
+        curses.raw()
         curses.curs_set(0)
         curses.start_color()
         self.stdscr.keypad(True)
@@ -203,7 +203,6 @@ class BasicInput():
             self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), " ", self.cursor_colour)
         else:
             self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), self.text[self.cursor_pos], self.cursor_colour_over_text)
-
 
 
 def ms_time():

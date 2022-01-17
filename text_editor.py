@@ -11,7 +11,8 @@ class Line:
 
 
 
-#This class is what makes the search function work. It handles all the search cursor logic.
+#This class is what makes the search function work. It handles all the search cursor logic. It stores the variables needed for
+#the search function. They are separated manly to avoid cluttering the program's class with variables.
 @dataclass
 class SearchMatch:
     #This dictionary contains the line and index of a match. The line is the key for the dictionary entry.
@@ -25,55 +26,6 @@ class SearchMatch:
     #The number of match in the line the cursor was last set to.
     current_match_number_in_line:int = 0
 
-
-    #Allows to choose which of all the matched texts is selected. Automatically moves the cursor to it.
-    def current_match_line_handler(self, change, class_ref):
-        self.current_match_number_in_line += change
-
-        #Check whether we are on a line with matches, if so cycle through them normally.
-        if class_ref.cursor_pos_y in self.line_and_index:
-            #Check if we are on a line with matches. If so check if there are any remaining matches in the current line.
-            if self.current_match_number_in_line >= len(self.line_and_index[class_ref.cursor_pos_y]) or self.current_match_number_in_line < 0:
-                #Move to the corresponding line depending on what the change was.
-                self.current_match_line += change
-
-                #If we get to the end or the beginning of the file go to the other end.
-                if self.current_match_line < 0:
-                    self.current_match_line = len(self.line_and_index) - 1
-                elif self.current_match_line >= len(self.line_and_index):
-                    self.current_match_line = 0
-
-                #If we change lines in which match the cursor ends depends on whether we are moving "up" or "down". If we are
-                #moving down we simply start at the first match in the next line. However if we are moving up we start on the
-                #last match of the previous line. To do this we set "current_match_number_in_line" to the length of the list
-                #of matches in that line -1.
-                if change > 0:
-                    self.current_match_number_in_line = 0
-                else:
-                    self.current_match_number_in_line = len(self.line_and_index[list(self.line_and_index.keys())[self.current_match_line]]) - 1
-
-                #Move the cursor to the corresponding line.
-                class_ref.cursor_pos_y = list(self.line_and_index.keys())[self.current_match_line]
-
-            #Update the x position of the cursor. The x position of the cursor is set to the last char of the matched word
-            #in case it's out of the screen so it will scroll and show the match.
-            class_ref.cursor_pos_x = self.line_and_index[class_ref.cursor_pos_y][self.current_match_number_in_line] + self.matched_text_length
-
-        #Otherwise go to the closest match.
-        else:
-            #Set the first match as the initial closest line.
-            closest_line = list(self.line_and_index.keys())[0]
-
-            for line in list(self.line_and_index.keys()):
-                #If the difference between the cursor and the line is smaller than the difference to the current closest line
-                #we have found a new closest line.
-                if abs(class_ref.cursor_pos_y - line) < abs(class_ref.cursor_pos_y - closest_line):
-                    closest_line = line
-
-            class_ref.cursor_pos_y = closest_line
-
-            #Update the x position of the cursor to the first match in that line.
-            class_ref.cursor_pos_x = self.line_and_index[closest_line][0] + self.matched_text_length
 
 
 #A simple prompt, with default text and the option to change it for a specified period of time. Beware that the prompt class
@@ -116,6 +68,8 @@ class FPSMeter:
         self.fps_final_count = 0
 
 
+    #Has to be called every "frame" that the program runs. In console applications this function should be called from the
+    #main program loop.
     def fps_handler(self):
         if utils.ms_time() > self.start_time + 1000:
             self.fps_final_count = self.fps_count
@@ -166,7 +120,7 @@ class TextEditor(utils.CursesUtils):
         self.desired_cursor_x_pos = 0
 
         #The text displayed at the bottom of the editor, can be used for messages.
-        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit ", 3500)
+        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Alt+S - save as | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit ", 3500)
         self.fps_meter = FPSMeter()
 
         #####SCROLLING#####
@@ -228,6 +182,10 @@ class TextEditor(utils.CursesUtils):
             self.key = self.stdscr.getch()
 
 
+
+    """
+    INPUT HANDLING
+    """
     def detect_key(self):
         #Text characters, this range covers all of extended ASCII.
         if self.key >= 32 and self.key <= 253:
@@ -368,7 +326,7 @@ class TextEditor(utils.CursesUtils):
         #"Page Up" and "Page Down" keys.
         elif self.key == curses.KEY_PPAGE:
             if self.find_results.find_enabled:
-                self.find_results.current_match_line_handler(-1, self)
+                self.match_line_handler(-1, self)
             else:
                 #Move the y cursor "up" by the size of the screen.
                 new_cursor_pos = self.cursor_pos_y - self.max_displayed_lines
@@ -384,7 +342,7 @@ class TextEditor(utils.CursesUtils):
 
         elif self.key == curses.KEY_NPAGE:
             if self.find_results.find_enabled:
-                self.find_results.current_match_line_handler(1, self)
+                self.match_line_handler(1, self)
             else:
                 #Move the y cursor "down" by the size of the screen.
                 new_cursor_pos = self.cursor_pos_y + self.max_displayed_lines
@@ -419,80 +377,18 @@ class TextEditor(utils.CursesUtils):
 
         #"CTRL+S" key combination.
         elif self.key == ord("S") - 64:
-            if self.file == None:
-                #Disable editor prompt.
-                self.prompt.toggle_prompt()
-
-                basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
-                #The "basic_input" method halts the program.
-                file = basic_input.basic_input()
-
-                #Re-enable editor prompt.
-                self.prompt.toggle_prompt()
-
-                #In case the user pressed escape to cancel.
-                if file == None:
-                    return
-                #Set the file.
-                else:
-                    self.file = file
-
-            #Get complete filepath.
-            path = os.path.join(os.getcwd(), self.file)
-
-            #Save the file in the given path.
-            if self.save_file(path) == 0:
-                #Change the prompt to display how many bytes have been written.
-                self.prompt.change_prompt("{} bytes written to disk".format(str(os.path.getsize(path))))
-            else:
-                self.prompt.change_prompt("Failed to save file, please try again")
+            self.save_handler()
 
         #"CTRL+O" key combination.
         elif self.key == ord("O") - 64:
-            #Save the file the user is currently working on. If it has a name.
-            if self.file != None:
-                self.save_file(os.path.join(os.getcwd(), self.file))
-           
-            #Disable editor prompt.
-            self.prompt.toggle_prompt()
-
-            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
-            #The "basic_input" method halts the program.
-            file = basic_input.basic_input()
-
-            #Re-enable editor prompt.
-            self.prompt.toggle_prompt()
-
-            #In case the user pressed escape to cancel.
-            if file == None:
-                return
-            else:
-                #Get complete filepath.
-                path = os.path.join(os.getcwd(), file)
-
-                #Make sure the path we are trying to read exists.
-                if os.path.lexists(path):
-                    #Open the file in the given path.
-                    if self.load_file(path, True) == 0:
-                        #If the file could be opened set the filename.
-                        self.file = file
-                        #Change the prompt to display how many bytes have been red.
-                        self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
-                    else:
-                        self.prompt.change_prompt("Failed to read file, please try again")
-
-
-                    #Reset the cursor position, so it's at the begging of the file.
-                    self.cursor_pos_y = 0
-                    self.cursor_pos_x = 0
-                else:
-                    self.prompt.change_prompt("The entered file doesn't exist")
+            self.load_handler()
 
         #"CTRL+F" key combination.
         elif self.key == ord("F") - 64:
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
+            #Get the text to search, doesn't currently support regular expressions.
             basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
             #The "basic_input" method halts the program.
             pattern_to_find = basic_input.basic_input()
@@ -506,7 +402,7 @@ class TextEditor(utils.CursesUtils):
                 self.find_results.line_and_index = {}
 
                 #Used to display how many matches were found using the prompt. It's more efficient to simply have a counter
-                #than accessing a dictionary .
+                #than accessing a dictionary.
                 match_counter = 0
 
                 #Gets every match in a line and puts it in an array. Then that array is added to the dictionary using the line
@@ -533,9 +429,18 @@ class TextEditor(utils.CursesUtils):
 
                     #If matches were found set the cursor to the first one. The match handler can be used to set the cursor
                     #to the current match by just passing 0 as the change.
-                    self.find_results.current_match_line_handler(0, self)
+                    self.match_line_handler(0, self)
 
 
+        #"ALT" keys.
+        #NOTE: "ALT" keys use the same principle as the "CTRL" keys, but you add 352 instead of subtracting 64.
+        elif self.key == ord("S") + 352:
+            self.save_handler(True)
+
+
+    """
+    CURSOR HANDLING
+    """
     #Allows for vertical and horizontal scrolling.
     def scroll_handler(self):
         #Vertical scrolling
@@ -571,6 +476,61 @@ class TextEditor(utils.CursesUtils):
         self.cursor_pos_y += line_index
 
 
+    #Allows to choose which of all the matched texts is selected and automatically moves the cursor to it. Performance wise it
+    #doesn't matter that this function accesses a dataclass a lot. This is because this function is only called when either
+    #"PPAGE" or "NPAGE" are pressed, not every frame.
+    def match_line_handler(self, change, class_ref):
+        self.find_results.current_match_number_in_line += change
+
+        #Check whether we are on a line with matches, if so cycle through them normally.
+        if self.cursor_pos_y in self.find_results.line_and_index:
+            #Check if we are on a line with matches. If so check if there are any remaining matches in the current line.
+            if self.find_results.current_match_number_in_line >= len(self.find_results.line_and_index[class_ref.cursor_pos_y]) or self.find_results.current_match_number_in_line < 0:
+                #Move to the corresponding line depending on what the change was.
+                self.find_results.current_match_line += change
+
+                #If we get to the end or the beginning of the file go to the other end.
+                if self.find_results.current_match_line < 0:
+                    self.find_results.current_match_line = len(self.find_results.line_and_index) - 1
+                elif self.find_results.current_match_line >= len(self.find_results.line_and_index):
+                    self.find_results.current_match_line = 0
+
+                #If we change lines in which match the cursor ends depends on whether we are moving "up" or "down". If we are
+                #moving down we simply start at the first match in the next line. However if we are moving up we start on the
+                #last match of the previous line. To do this we set "current_match_number_in_line" to the length of the list
+                #of matches in that line -1.
+                if change > 0:
+                    self.find_results.current_match_number_in_line = 0
+                else:
+                    self.find_results.current_match_number_in_line = len(self.find_results.line_and_index[list(self.find_results.line_and_index.keys())[self.find_results.current_match_line]]) - 1
+
+                #Move the cursor to the corresponding line.
+                self.cursor_pos_y = list(self.find_results.line_and_index.keys())[self.find_results.current_match_line]
+
+            #Update the x position of the cursor. The x position of the cursor is set to the last char of the matched word
+            #in case it's out of the screen so it will scroll and show the match.
+            self.cursor_pos_x = self.find_results.line_and_index[self.cursor_pos_y][self.find_results.current_match_number_in_line] + self.find_results.matched_text_length
+
+        #Otherwise go to the closest match.
+        else:
+            #Set the first match as the initial closest line.
+            closest_line = list(self.find_results.line_and_index.keys())[0]
+
+            for line in list(self.find_results.line_and_index.keys()):
+                #If the difference between the cursor and the line is smaller than the difference to the current closest line
+                #we have found a new closest line.
+                if abs(self.cursor_pos_y - line) < abs(self.cursor_pos_y - closest_line):
+                    closest_line = line
+
+            self.cursor_pos_y = closest_line
+
+            #Update the x position of the cursor to the first match in that line.
+            self.cursor_pos_x = self.find_results.line_and_index[closest_line][0] + self.find_results.matched_text_length
+
+
+    """
+    PRINTING FUNCTIONS
+    """
     #Displays the buffer and cursor. Also handles search function highlighting.
     def display(self):
         line_count = len(self.text)
@@ -694,6 +654,43 @@ class TextEditor(utils.CursesUtils):
         self.status_bar()
 
 
+    """
+    SAVE AND LOAD FUNCTIONS
+    """
+    #Handles the calling of the actual save function.
+    def save_handler(self, filename = False):
+        #If there's no filename we ask the user for one. Alternatively the "filename" variable can be used to prompt the user
+        #for a filename regardless, for the "save as" functionality.
+        if self.file == None or filename:
+            #Disable editor prompt.
+            self.prompt.toggle_prompt()
+
+            #Get the filename.
+            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Save file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
+            #The "basic_input" method halts the program.
+            file = basic_input.basic_input()
+
+            #Re-enable editor prompt.
+            self.prompt.toggle_prompt()
+
+            #In case the user pressed escape to cancel.
+            if file == None:
+                return
+            #Set the file.
+            else:
+                self.file = file
+
+        #Get complete filepath.
+        path = os.path.join(os.getcwd(), self.file)
+
+        #Save the file in the given path.
+        if self.save_file(path) == 0:
+            #Change the prompt to display how many bytes have been written.
+            self.prompt.change_prompt("{} bytes written to disk".format(str(os.path.getsize(path))))
+        else:
+            self.prompt.change_prompt("Failed to save file, please try again")
+
+
     #Saves the current file to the given path, returns 1 if it was successful.
     def save_file(self, path):
         file_text = ""
@@ -718,6 +715,47 @@ class TextEditor(utils.CursesUtils):
         #In case an unexpected error occurs.
         except:
             return 1
+
+
+    #Handles the calling of the actual load function.
+    def load_handler(self):
+        #Save the file the user is currently working on. If it has a name.
+        if self.file != None:
+            self.save_file(os.path.join(os.getcwd(), self.file))
+           
+        #Disable editor prompt.
+        self.prompt.toggle_prompt()
+
+        basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
+        #The "basic_input" method halts the program.
+        file = basic_input.basic_input()
+
+        #Re-enable editor prompt.
+        self.prompt.toggle_prompt()
+
+        #In case the user pressed escape to cancel.
+        if file == None:
+            return
+        else:
+            #Get complete filepath.
+            path = os.path.join(os.getcwd(), file)
+
+            #Make sure the path we are trying to read exists.
+            if os.path.lexists(path):
+                #Open the file in the given path.
+                if self.load_file(path, True) == 0:
+                    #If the file could be opened set the filename.
+                    self.file = file
+                    #Change the prompt to display how many bytes have been red.
+                    self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
+                else:
+                    self.prompt.change_prompt("Failed to read file, please try again")
+
+                #Reset the cursor position, so it's at the begging of the file.
+                self.cursor_pos_y = 0
+                self.cursor_pos_x = 0
+            else:
+                self.prompt.change_prompt("The entered file doesn't exist")    
 
 
     #Loads the file in the given path, returns 1 if it was successful.
