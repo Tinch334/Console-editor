@@ -401,7 +401,7 @@ class TextEditor(utils.CursesUtils):
         #(ex: CTRL+A, the key is "A") and returns it's value, using the uppercase ASCII code minus 64. So if you pressed
         #CTRL+E you would get a keycode of 5.
 
-        #"CTRL+Q" - TEMPORARY
+        #"CTRL+Q"
         elif self.key == ord("Q") - 64:
             required_confirmation = self.config_file["MISC"]["confirmation-key-count"]
 
@@ -421,11 +421,15 @@ class TextEditor(utils.CursesUtils):
 
         #"CTRL+S" key combination.
         elif self.key == ord("S") - 64:
-            self.save_handler()
+            #If there's no filename get one from the user.
+            if self.file == None:
+                self.get_save_name()
+            else:
+                self.save_handler()
 
         #"CTRL+O" key combination.
         elif self.key == ord("O") - 64:
-            self.load_handler()
+            self.get_load_name()
 
         #"CTRL+F" key combination.
         elif self.key == ord("F") - 64:
@@ -438,7 +442,7 @@ class TextEditor(utils.CursesUtils):
         #"ALT" keys.
         #NOTE: "ALT" keys use the same principle as the "CTRL" keys, but you add 352 instead of subtracting 64.
         elif self.key == ord("S") + 352:
-            self.save_handler(True)
+            self.get_save_name()
 
 
     #Handles everting that happens whenever the buffer's modified.
@@ -671,11 +675,10 @@ class TextEditor(utils.CursesUtils):
     """
     SAVE AND LOAD FUNCTIONS
     """
-    #Handles the calling of the actual save function.
-    def save_handler(self, filename = False):
-        #If there's no filename we ask the user for one. Alternatively the "filename" variable can be used to prompt the user
-        #for a filename regardless, for the "save as" functionality.
-        if self.file == None or filename:
+    #Gets the name of the file to save with a prompt.
+    def get_save_name(self):
+        #So the user can't enter an empty filename.
+        while True:
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
@@ -687,13 +690,18 @@ class TextEditor(utils.CursesUtils):
             #Re-enable editor prompt.
             self.prompt.toggle_prompt()
 
-            #In case the user pressed escape to cancel.
-            if file == None:
-                return
-            #Set the file.
-            else:
+            #Make sure the user didn't press escape to cancel.
+            if file != None:
+                #Set the file.
                 self.file = file
 
+                break
+
+        self.save_handler()
+
+
+    #Handles the calling of the actual save function.
+    def save_handler(self):
         #Get complete filepath.
         path = os.path.join(os.getcwd(), self.file)
 
@@ -731,12 +739,8 @@ class TextEditor(utils.CursesUtils):
             return 1
 
 
-    #Handles the calling of the actual load function.
-    def load_handler(self):
-        #Save the file the user is currently working on. If it has a name.
-        if self.file != None:
-            self.save_file(os.path.join(os.getcwd(), self.file))
-           
+    #Gets the name of the file to load with a prompt.
+    def get_load_name(self):
         #Disable editor prompt.
         self.prompt.toggle_prompt()
 
@@ -746,6 +750,16 @@ class TextEditor(utils.CursesUtils):
 
         #Re-enable editor prompt.
         self.prompt.toggle_prompt()
+
+        #Calls the load function.
+        self.load_handler(file)
+
+
+    #Handles the calling of the actual load function.
+    def load_handler(self, file):
+        #Save the file the user is currently working on. If it has a name.
+        if self.file != None:
+            self.save_file(os.path.join(os.getcwd(), self.file))
 
         #In case the user pressed escape to cancel.
         if file == None:
@@ -803,17 +817,18 @@ class TextEditor(utils.CursesUtils):
     """
     SEARCH FUNCTIONS
     """
-    def find_handler(self):
-        #Disable editor prompt.
-        self.prompt.toggle_prompt()
+    def find_handler(self, pattern = None):
+        if pattern == None:
+            #Disable editor prompt.
+            self.prompt.toggle_prompt()
 
-        #Get the text to search, doesn't currently support regular expressions.
-        basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
-        #The "basic_input" method halts the program.
-        pattern_to_find = basic_input.basic_input()
+            #Get the text to search, doesn't currently support regular expressions.
+            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
+            #The "basic_input" method halts the program.
+            pattern_to_find = basic_input.basic_input()
 
-        #Re-enable editor prompt.
-        self.prompt.toggle_prompt()
+            #Re-enable editor prompt.
+            self.prompt.toggle_prompt()
 
         #The user actually pressed enter and not the escape key.
         if pattern_to_find != None:
@@ -852,11 +867,12 @@ class TextEditor(utils.CursesUtils):
 
 
 
+    #Handles the console and processes it's commands.
     def tool_console_handler(self):
         #Disable editor prompt.
         self.prompt.toggle_prompt()
 
-        #Get the filename.
+        #Get the command.
         basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Command: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
         #The "basic_input" method halts the program.
         full_command = basic_input.basic_input()
@@ -873,35 +889,47 @@ class TextEditor(utils.CursesUtils):
             match command_single:
                 #Save.
                 case "s":
-                    if (len(command_arguments) != 0):
-                        self.prompt.change_prompt(self.tools_command_error)
+                    #No filename was given.
+                    if len(command_arguments) == 0:
+                        #If there's no filename given and no file then we cannot save.
+                        if self.file == None:
+                            self.prompt.change_prompt("No filename specified, cannot save")
+                            return
+                        else:
+                            self.save_handler()
+
+                    #A filename was given.
+                    elif len(command_arguments) == 1:
+                        #If a name was given then set it as the filename.
+                        self.file = command_arguments[0]
+                        self.save_handler()
+                    else:
+                        self.prompt.change_prompt("Too many arguments for save function")
                         return
-
-                    self.save_handler(False)
-
-                #Save as.
-                case "sa":
-                    if (len(command_arguments) != 0):
-                        self.prompt.change_prompt(self.tools_command_error)
-                        return
-
-                    self.save_handler(True)
 
                 #Load.
                 case "o":
-                    if (len(command_arguments) != 0):
-                        self.prompt.change_prompt(self.tools_command_error)
+                    #In case there are too many or to few arguments
+                    if (len(command_arguments) < 1):
+                        self.prompt.change_prompt("No filename specified, cannot load")
+                        return
+                    elif (len(command_arguments) > 1):
+                        self.prompt.change_prompt("Too many arguments for load function")
                         return
 
-                    self.load_handler()
+                    #Load file
+                    self.load_handler(command_arguments[0])
 
                 #Find.
                 case "f":
-                    if (len(command_arguments) != 0):
-                        self.prompt.change_prompt(self.tools_command_error)
+                    if (len(command_arguments) < 1):
+                        self.prompt.change_prompt("No filename specified, cannot load")
+                        return
+                    elif (len(command_arguments) > 1):
+                        self.prompt.change_prompt("Too many arguments for load function")
                         return
 
-                    self.find_handler()
+                    self.find_handler(command_arguments[0])
 
                 #Word count.
                 case "wc":
@@ -912,11 +940,21 @@ class TextEditor(utils.CursesUtils):
                     self.word_count()
 
                 case "j":
-                    if (len(command_arguments) != 1):
-                        self.prompt.change_prompt(self.tools_command_error)
+                    #In case there are too many or to few arguments
+                    if (len(command_arguments) < 1):
+                        self.prompt.change_prompt("No line number specified, cannot jump")
+                        return
+                    elif (len(command_arguments) > 1):
+                        self.prompt.change_prompt("Too many arguments for jump function")
                         return
 
                     self.jump_line(int(command_arguments[0]))
+
+
+    #Automatically checks if the number of arguments supplied is correct. Returns 0 if so, otherwise returns 1.
+    def argument_count(self, args, count, under_text, over_text):
+        pass
+
 
 
     #Counts all words in current files, sets prompt with result.
@@ -929,6 +967,7 @@ class TextEditor(utils.CursesUtils):
                 if (word.isalpha()):
                     words += 1
 
+        #Show the count as a prompt
         self.prompt.change_prompt("There are {} words".format(words))
 
 
