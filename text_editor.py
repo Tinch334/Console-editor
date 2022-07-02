@@ -880,7 +880,7 @@ class TextEditor(utils.CursesUtils):
                     self.save_handler(False)
 
                 #Save as.
-                case "sn":
+                case "sa":
                     if (len(command_arguments) != 0):
                         self.prompt.change_prompt(self.tools_command_error)
                         return
@@ -904,7 +904,7 @@ class TextEditor(utils.CursesUtils):
                     self.find_handler()
 
                 #Word count.
-                case "c":
+                case "wc":
                     if (len(command_arguments) != 0):
                         self.prompt.change_prompt(self.tools_command_error)
                         return
