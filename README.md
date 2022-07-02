@@ -3,7 +3,7 @@ A simple console text editor made in Python using the curses library. For now th
 
 ## Requirements
 The console editor requires the following:
-- Python 3.8 or higher (https://www.python.org/downloads/)
+- Python 3.10 or higher (https://www.python.org/downloads/)
 - The curses module. If you are using Linux then you already have it, if instead you use Windows see (https://pypi.org/project/windows-curses/)
 
 ## Configuration file
@@ -13,15 +13,14 @@ The editor now has a configuration file, in YAML. For now it only really control
 For example the colour ``BLUE_WHITE`` would have a blue foreground and a white background.
  
 ## Tool console
-The tool console is very similar in concept and function to VIM's console, it's activated with ``Ctrl+T``. There are currently two functions that can only be called through the console:
-* Word count, which count's the number of words (strings composed of alphanumeric characters) in the file. Uses command ``wc``.
-* Line jump, jumps to the specified line. Uses command ``l <line>``.
-
-The other functions that are already present in the editor can also be accessed with the console, however they still don't support arguments, they just invoke their respective functions. They use the commands:
-* ``s`` for save
-* ``sa`` for save as
-* ``o`` for open
-* ``f`` for find
+The tool console is very similar in concept and function to VIM's console, it's activated with ``Ctrl+T``. All editor functions can be called from the console. Note that an ``(o)`` next to an argument indicates it's optional. The available commands are:
+* ``wc`` for word count, which counts the number of words (strings composed of alphanumeric characters) in the file
+* ``l <line>`` for line jump, jumps to the specified line.
+* ``s <filename>(o)`` for save. If no filename is specified the editor will use the current one, if it exists. If a filename is provided then the function will act as "Save as".
+* ``o <filename>`` for open.
+* ``q`` for quit, cannot quit with unsaved changes.
+* ``qf`` for force quit, quit without saving).
+* ``f <text to find>`` for finding text, does not support regular expressions at the moment.
 
 ## Running
 To ensure the editor runs make sure all three necessary files are in the same folder:

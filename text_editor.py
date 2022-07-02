@@ -152,9 +152,6 @@ class TextEditor(utils.CursesUtils):
         #####CONFIGURATION FILE#####
         self.config_file = None
 
-        #####TOOLS CONSOLE#####
-        self.tools_command_error = "Please enter a valid command!"
-
         #####NOTES#####
         """
         Something very important to remember about the editor is that the cursor and text are independent from the displayed
@@ -192,7 +189,7 @@ class TextEditor(utils.CursesUtils):
             #If a file was passed as an argument check if it exists. If so open it, otherwise simply set the given name as the
             #name of the file that's being edited.
             if os.path.lexists(path):
-                self.load_file(path, False)
+                self.load_file(path)
             else:
                 self.file = arguments[0]
 
@@ -423,13 +420,13 @@ class TextEditor(utils.CursesUtils):
         elif self.key == ord("S") - 64:
             #If there's no filename get one from the user.
             if self.file == None:
-                self.get_save_name()
+                self.save_handler(True)
             else:
                 self.save_handler()
 
         #"CTRL+O" key combination.
         elif self.key == ord("O") - 64:
-            self.get_load_name()
+            self.load_handler()
 
         #"CTRL+F" key combination.
         elif self.key == ord("F") - 64:
@@ -675,10 +672,10 @@ class TextEditor(utils.CursesUtils):
     """
     SAVE AND LOAD FUNCTIONS
     """
-    #Gets the name of the file to save with a prompt.
-    def get_save_name(self):
-        #So the user can't enter an empty filename.
-        while True:
+    #Handles the calling of the actual save function.
+    def save_handler(self, filename = False):
+        #To allow for entering a filename to load
+        if filename:
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
@@ -690,18 +687,14 @@ class TextEditor(utils.CursesUtils):
             #Re-enable editor prompt.
             self.prompt.toggle_prompt()
 
-            #Make sure the user didn't press escape to cancel.
-            if file != None:
-                #Set the file.
+            #In case the user pressed the escape key.
+            if file == None:
+                return
+
+            #Otherwise set filename.
+            else:
                 self.file = file
 
-                break
-
-        self.save_handler()
-
-
-    #Handles the calling of the actual save function.
-    def save_handler(self):
         #Get complete filepath.
         path = os.path.join(os.getcwd(), self.file)
 
@@ -739,55 +732,51 @@ class TextEditor(utils.CursesUtils):
             return 1
 
 
-    #Gets the name of the file to load with a prompt.
-    def get_load_name(self):
-        #Disable editor prompt.
-        self.prompt.toggle_prompt()
-
-        basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
-        #The "basic_input" method halts the program.
-        file = basic_input.basic_input()
-
-        #Re-enable editor prompt.
-        self.prompt.toggle_prompt()
-
-        #Calls the load function.
-        self.load_handler(file)
-
-
     #Handles the calling of the actual load function.
-    def load_handler(self, file):
+    def load_handler(self, file = None):
+        if file == None:
+            #Disable editor prompt.
+            self.prompt.toggle_prompt()
+
+            basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Open file: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
+            #The "basic_input" method halts the program.
+            file = basic_input.basic_input()
+
+            #Re-enable editor prompt.
+            self.prompt.toggle_prompt()
+
+            #If the "file" is still "None" that means that the escape key was pressed.
+            if file == None:
+                return
+
         #Save the file the user is currently working on. If it has a name.
         if self.file != None:
             self.save_file(os.path.join(os.getcwd(), self.file))
 
-        #In case the user pressed escape to cancel.
-        if file == None:
-            return
-        else:
-            #Get complete filepath.
-            path = os.path.join(os.getcwd(), file)
+        #Get complete filepath.
+        path = os.path.join(os.getcwd(), file)
 
-            #Make sure the path we are trying to read exists.
-            if os.path.lexists(path):
-                #Open the file in the given path.
-                if self.load_file(path, True) == 0:
-                    #If the file could be opened set the filename.
-                    self.file = file
-                    #Change the prompt to display how many bytes have been red.
-                    self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
-                else:
-                    self.prompt.change_prompt("Failed to read file, please try again")
-
-                #Reset the cursor position, so it's at the begging of the file.
-                self.cursor_pos_y = 0
-                self.cursor_pos_x = 0
+        #Make sure the path we are trying to read exists.
+        if os.path.lexists(path):
+            #Open the file in the given path.
+            if self.load_file(path) == 0:
+                #If the file could be opened set the filename.
+                self.file = file
+                #Change the prompt to display how many bytes have been red.
+                self.prompt.change_prompt("Loaded {} bytes from {}".format(str(os.path.getsize(path)), self.file))
             else:
-                self.prompt.change_prompt("The entered file doesn't exist")    
+                self.prompt.change_prompt("Failed to read file, please try again")
+
+            #Reset the cursor position, so it's at the begging of the file.
+            self.cursor_pos_y = 0
+            self.cursor_pos_x = 0
+
+        else:
+            self.prompt.change_prompt("The entered file doesn't exist")    
 
 
     #Loads the file in the given path, returns 1 if it was successful.
-    def load_file(self, path, prompt = True):
+    def load_file(self, path):
         try:
             #Empty the text only if the file we are trying to read exists.
             self.text = []
@@ -866,7 +855,6 @@ class TextEditor(utils.CursesUtils):
                 self.match_line_handler(0, self)
 
 
-
     #Handles the console and processes it's commands.
     def tool_console_handler(self):
         #Disable editor prompt.
@@ -880,81 +868,105 @@ class TextEditor(utils.CursesUtils):
         #Re-enable editor prompt.
         self.prompt.toggle_prompt()
 
+        #In case the user pressed the escape key.
         if full_command == None:
-            self.prompt.change_prompt(self.tools_command_error)
-        else:
-            command_single = full_command.split()[0]
-            command_arguments = full_command.split()[1:]
+            return
 
-            match command_single:
-                #Save.
-                case "s":
-                    #No filename was given.
-                    if len(command_arguments) == 0:
-                        #If there's no filename given and no file then we cannot save.
-                        if self.file == None:
-                            self.prompt.change_prompt("No filename specified, cannot save")
-                            return
-                        else:
-                            self.save_handler()
+        command_name = full_command.split()[0]
+        command_arguments = full_command.split()[1:]
 
-                    #A filename was given.
-                    elif len(command_arguments) == 1:
-                        #If a name was given then set it as the filename.
-                        self.file = command_arguments[0]
-                        self.save_handler()
+        match command_name:
+            #Save and save as.
+            case "s":
+                #No filename was given.
+                if len(command_arguments) == 0:
+                    #If there's no filename given and no file then we cannot save.
+                    if self.file == None:
+                        self.prompt.change_prompt("No filename specified, cannot save")
+                        return
                     else:
-                        self.prompt.change_prompt("Too many arguments for save function")
-                        return
+                        self.save_handler()
 
-                #Load.
-                case "o":
-                    #In case there are too many or to few arguments
-                    if (len(command_arguments) < 1):
-                        self.prompt.change_prompt("No filename specified, cannot load")
-                        return
-                    elif (len(command_arguments) > 1):
-                        self.prompt.change_prompt("Too many arguments for load function")
-                        return
+                #A filename was given.
+                elif len(command_arguments) == 1:
+                    #If a name was given then set it as the filename.
+                    self.file = command_arguments[0]
+                    self.save_handler()
+                else:
+                    self.prompt.change_prompt("Too many arguments for save function")
+                    return
 
-                    #Load file
-                    self.load_handler(command_arguments[0])
+            #Load.
+            case "o":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 1, "No filename specified, cannot load", "load function"):
+                    return
 
-                #Find.
-                case "f":
-                    if (len(command_arguments) < 1):
-                        self.prompt.change_prompt("No filename specified, cannot load")
-                        return
-                    elif (len(command_arguments) > 1):
-                        self.prompt.change_prompt("Too many arguments for load function")
-                        return
+                #Load file
+                self.load_handler(command_arguments[0])
 
-                    self.find_handler(command_arguments[0])
+            #Exit.
+            case "q":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 0, "", "quit function"):
+                    return
 
-                #Word count.
-                case "wc":
-                    if (len(command_arguments) != 0):
-                        self.prompt.change_prompt(self.tools_command_error)
-                        return
+                #Check if there are unsaved changes.
+                if self.buffer_modification_counter > 0:
+                    self.prompt.change_prompt("Unsaved changes, use \"qf\" to quit without saving")
+                else:
+                    #Exit editor.
+                    curses.endwin()
+                    quit()
 
-                    self.word_count()
+            #Force exit.
+            case "qf":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 0, "", "force quit function"):
+                    return
 
-                case "j":
-                    #In case there are too many or to few arguments
-                    if (len(command_arguments) < 1):
-                        self.prompt.change_prompt("No line number specified, cannot jump")
-                        return
-                    elif (len(command_arguments) > 1):
-                        self.prompt.change_prompt("Too many arguments for jump function")
-                        return
+                #Exit editor.
+                curses.endwin()
+                quit()
 
-                    self.jump_line(int(command_arguments[0]))
+
+            #Find.
+            case "f":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 1, "No text specified, cannot find", "find function"):
+                    return
+
+                self.find_handler(command_arguments[0])
+
+            #Word count.
+            case "wc":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 0, "", "word count function"):
+                    return
+
+                self.word_count()
+
+            case "j":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, 1, "No line number specified, cannot jump", "jump function"):
+                    return
+
+                self.jump_line(int(command_arguments[0]))
+
+            case _:
+                self.prompt.change_prompt("Please enter a valid command!")
 
 
     #Automatically checks if the number of arguments supplied is correct. Returns 0 if so, otherwise returns 1.
     def argument_count(self, args, count, under_text, over_text):
-        pass
+        if (len(args) < count):
+            self.prompt.change_prompt(under_text)
+            return 1
+        elif (len(args) > count):
+            self.prompt.change_prompt("Too many arguments for {}".format(over_text))
+            return 1
 
+        return 0
 
 
     #Counts all words in current files, sets prompt with result.
