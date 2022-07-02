@@ -120,7 +120,7 @@ class TextEditor(utils.CursesUtils):
         self.desired_cursor_x_pos = 0
 
         #The text displayed at the bottom of the editor, can be used for messages.
-        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Alt+S - save as | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit ", 3500)
+        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Alt+S - save as | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit | Ctrl+T - tools", 3500)
         self.fps_meter = FPSMeter()
 
         #####SCROLLING#####
@@ -152,6 +152,9 @@ class TextEditor(utils.CursesUtils):
         #####CONFIGURATION FILE#####
         self.config_file = None
 
+        #####TOOLS CONSOLE#####
+        self.tools_command_error = "Please enter a valid command!"
+
         #####NOTES#####
         """
         Something very important to remember about the editor is that the cursor and text are independent from the displayed
@@ -165,7 +168,7 @@ class TextEditor(utils.CursesUtils):
         short_options = "vh"
         long_options = ["version", "help"]
 
-        version_text = "Text editor - Version 0.1 - January 2021\n"
+        version_text = "Text editor - Version 1.2 - January 2021\n"
         usage_text = "Usage: python {} [-v/--version] | [-h/--help] <file>\n".format(sys.argv[0])
 
         options, arguments = getopt.getopt(sys.argv[1:], short_options, long_options)
@@ -428,6 +431,9 @@ class TextEditor(utils.CursesUtils):
         elif self.key == ord("F") - 64:
             self.find_handler()
 
+        #"CTRL+T" key combination. Activates the "tool console", which allows to write commands in a VIM like console.
+        elif self.key == ord("T") - 64:
+            self.tool_console_handler()
 
         #"ALT" keys.
         #NOTE: "ALT" keys use the same principle as the "CTRL" keys, but you add 352 instead of subtracting 64.
@@ -843,6 +849,99 @@ class TextEditor(utils.CursesUtils):
                 #If matches were found set the cursor to the first one. The match handler can be used to set the cursor
                 #to the current match by just passing 0 as the change.
                 self.match_line_handler(0, self)
+
+
+
+    def tool_console_handler(self):
+        #Disable editor prompt.
+        self.prompt.toggle_prompt()
+
+        #Get the filename.
+        basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Command: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
+        #The "basic_input" method halts the program.
+        full_command = basic_input.basic_input()
+
+        #Re-enable editor prompt.
+        self.prompt.toggle_prompt()
+
+        if full_command == None:
+            self.prompt.change_prompt(self.tools_command_error)
+        else:
+            command_single = full_command.split()[0]
+            command_arguments = full_command.split()[1:]
+
+            match command_single:
+                #Save.
+                case "s":
+                    if (len(command_arguments) != 0):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.save_handler(False)
+
+                #Save as.
+                case "sn":
+                    if (len(command_arguments) != 0):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.save_handler(True)
+
+                #Load.
+                case "o":
+                    if (len(command_arguments) != 0):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.load_handler()
+
+                #Find.
+                case "f":
+                    if (len(command_arguments) != 0):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.find_handler()
+
+                #Word count.
+                case "c":
+                    if (len(command_arguments) != 0):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.word_count()
+
+                case "j":
+                    if (len(command_arguments) != 1):
+                        self.prompt.change_prompt(self.tools_command_error)
+                        return
+
+                    self.jump_line(int(command_arguments[0]))
+
+
+    #Counts all words in current files, sets prompt with result.
+    def word_count(self):
+        words = 0
+
+        #Counts all strings composed of alphanumeric characters separated by spaces.
+        for line in self.text:
+            for word in line.line_text.split():
+                if (word.isalpha()):
+                    words += 1
+
+        self.prompt.change_prompt("There are {} words".format(words))
+
+
+    def jump_line(self, line):
+        if line < 0 or line > len(self.text):
+            self.prompt.change_prompt("Please enter a valid line number")
+            return
+
+        #Go to given line, resetting the cursor's x position.
+        self.cursor_pos_y = line - 1
+        self.cursor_pos_x = 0
+
+
 
 
 text_editor = TextEditor()
