@@ -279,6 +279,7 @@ class TextEditor(utils.CursesUtils):
                 text_before = self.text[self.cursor_pos_y].line_text[:self.cursor_pos_x]
                 text_with_removed_char = self.text[self.cursor_pos_y].line_text[self.cursor_pos_x + 1:]
                 self.text[self.cursor_pos_y].line_text = text_before + text_with_removed_char
+
             #Move the line below to the current line. Make sure there's a line to move up.
             elif len(self.text) - 1 > self.cursor_pos_y:
                 self.text[self.cursor_pos_y].line_text += self.text[self.cursor_pos_y + 1].line_text
@@ -855,6 +856,9 @@ class TextEditor(utils.CursesUtils):
                 self.match_line_handler(0, self)
 
 
+    """
+    TOOL CONSOLE FUNCTIONS
+    """
     #Handles the console and processes it's commands.
     def tool_console_handler(self):
         #Disable editor prompt.
@@ -885,10 +889,14 @@ class TextEditor(utils.CursesUtils):
                         self.prompt.change_prompt("No filename specified, cannot save")
                         return
                     else:
-                        self.save_handler()
+                        self.save_handler("Invalid argument type for save function")
 
                 #A filename was given.
                 elif len(command_arguments) == 1:
+                    #Check if argument is a string.
+                    if not isinstance(command_arguments[0], str):
+                        return 1
+
                     #If a name was given then set it as the filename.
                     self.file = command_arguments[0]
                     self.save_handler()
@@ -899,7 +907,7 @@ class TextEditor(utils.CursesUtils):
             #Load.
             case "o":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 1, "No filename specified, cannot load", "load function"):
+                if self.argument_count(command_arguments, [str],"No filename specified, cannot load", "load function"):
                     return
 
                 #Load file
@@ -908,7 +916,7 @@ class TextEditor(utils.CursesUtils):
             #Exit.
             case "q":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 0, "", "quit function"):
+                if self.argument_count(command_arguments, [], "", "quit function"):
                     return
 
                 #Check if there are unsaved changes.
@@ -922,7 +930,7 @@ class TextEditor(utils.CursesUtils):
             #Force exit.
             case "qf":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 0, "", "force quit function"):
+                if self.argument_count(command_arguments, [], "", "force quit function"):
                     return
 
                 #Exit editor.
@@ -933,7 +941,7 @@ class TextEditor(utils.CursesUtils):
             #Find.
             case "f":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 1, "No text specified, cannot find", "find function"):
+                if self.argument_count(command_arguments, [str], "No text specified, cannot find", "find function"):
                     return
 
                 self.find_handler(command_arguments[0])
@@ -941,32 +949,66 @@ class TextEditor(utils.CursesUtils):
             #Word count.
             case "wc":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 0, "", "word count function"):
+                if self.argument_count(command_arguments, [], "", "word count function"):
                     return
 
                 self.word_count()
 
             case "j":
                 #In case there are too many or to few arguments
-                if self.argument_count(command_arguments, 1, "No line number specified, cannot jump", "jump function"):
+                if self.argument_count(command_arguments, [int], "No line number specified, cannot jump", "jump function"):
                     return
 
-                self.jump_line(int(command_arguments[0]))
+                #Make sure the line number is valid.
+                if int(command_arguments[0]) < 0 or int(command_arguments[0]) > len(self.text):
+                    self.prompt.change_prompt("Please enter a valid line number")
+                    return
+
+                #Calculates the amount to jump, the result is negated to then use the interline handler.
+                new_cursor_pos = -(self.cursor_pos_y - int(command_arguments[0]) + 1)
+                #Jump to desired line.
+                self.interline_cursor_handler(new_cursor_pos)
 
             case _:
                 self.prompt.change_prompt("Please enter a valid command!")
 
 
     #Automatically checks if the number of arguments supplied is correct. Returns 0 if so, otherwise returns 1.
-    def argument_count(self, args, count, under_text, over_text):
-        if (len(args) < count):
+    def argument_count(self, args, args_type, under_text, over_text):
+        #Make sure the correct number of arguments were passed.
+        if (len(args) < len(args_type)):
             self.prompt.change_prompt(under_text)
             return 1
-        elif (len(args) > count):
+        elif (len(args) > len(args_type)):
             self.prompt.change_prompt("Too many arguments for {}".format(over_text))
             return 1
 
+        #Check all arguments against their supposed type. The last variable in the for loop, "arg_num" is used in case
+        #there's an error to show the position of the argument.
+        for arg, arg_t, arg_num in zip(args, args_type, range(len(args))):
+            #Check if the type is correct for every argument.
+            if self.check_type(arg, arg_t):
+                #If it's not get the types as strings. The cutting is done to eliminate the additional text added when
+                #printing type. Ex: Removing everything in this string: "<class 'int'>" except "int".
+                supposed_type = str(arg_t)[8:-2]
+
+                #Change prompt to show type error.
+                self.prompt.change_prompt("Invalid argument type, expected \"{}\" for argument in position {}".format(supposed_type, (arg_num + 1)))
+
+                return 1
+
         return 0
+
+
+    #Checks the given value against the given type, if successful returns 0.
+    def check_type(self, value, type):
+        #Tries to cast the value to the given type.
+        try:
+            type(value)
+            return 0
+        #If the value
+        except:
+            return 1
 
 
     #Counts all words in current files, sets prompt with result.
@@ -981,17 +1023,6 @@ class TextEditor(utils.CursesUtils):
 
         #Show the count as a prompt
         self.prompt.change_prompt("There are {} words".format(words))
-
-
-    def jump_line(self, line):
-        if line < 0 or line > len(self.text):
-            self.prompt.change_prompt("Please enter a valid line number")
-            return
-
-        #Go to given line, resetting the cursor's x position.
-        self.cursor_pos_y = line - 1
-        self.cursor_pos_x = 0
-
 
 
 
