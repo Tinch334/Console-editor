@@ -656,7 +656,7 @@ class TextEditor(utils.CursesUtils):
         #Note: In this case we directly access the dictionary instead of using a variable because this only occurs once per
         #program loop.
         #Print the status bar
-        self.addstrex(self.max_displayed_lines, 0, status_text, self.get_colour(self.config_file["EDITOR-COLOUR"]["status-bar-colour"]))
+        self.stdscr.addstr(self.max_displayed_lines, 0, status_text, self.get_colour(self.config_file["STATUS-BAR"]["status-bar-colour"]))
 
         #If the editor prompt is enabled print it.
         if self.prompt.prompt_enabled:
@@ -973,7 +973,8 @@ class TextEditor(utils.CursesUtils):
                 self.prompt.change_prompt("Please enter a valid command!")
 
 
-    #Automatically checks if the number of arguments supplied is correct. Returns 0 if so, otherwise returns 1.
+    #Automatically checks if the number of arguments supplied is correct, along with their types. Returns 0 if so, otherwise
+    #returns 1.
     def argument_count(self, args, args_type, under_text, over_text):
         #Make sure the correct number of arguments were passed.
         if (len(args) < len(args_type)):
