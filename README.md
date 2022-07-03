@@ -1,3 +1,4 @@
+
 # Console-editor
 A simple console text editor made in Python using the curses library. For now the editor remains not usable for proper coding, mainly due to the lack of syntax highlighting and tabulations.
 
@@ -6,9 +7,30 @@ The console editor requires the following:
 - Python 3.10 or higher (https://www.python.org/downloads/)
 - The curses module. If you are using Linux then you already have it, if instead you use Windows see (https://pypi.org/project/windows-curses/)
 
+<br/>
+
 ## Configuration file
-The editor now has a configuration file, in YAML. For now it only really controls the colours in the editor. Each colour in the editor is composed of a foreground and background colour, the first one is the foreground colour (The colour of the characters), and the second one the background colour. The colours must be one of the following:
+The editor now has a configuration file, in YAML
+### Colours
+Each colour in the editor is composed of a foreground and background colour, the first one is the foreground colour (The colour of the characters), and the second one the background colour. The colours must be one of the following:
 > ``BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, WHITE, YELLOW``
+
+### Configuring the statusbar
+The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it any way you want.
+
+The available elements:
+* ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]`.`
+* ``lines:` The amount of lines the current file has.`
+* ``modified:`` Whether the file has been modified and has unsaved changes.
+* ``fps:`` Displays the FPS the editor is currently running at.
+* ``cursor:`` Shows the position of the cursor, first vertical then horizontal.
+
+The available separators:
+* ``\:`` An empty separator, nothing will be inserted between the elements.
+* ``-:`` The string ``" - "`` will be inserted between the elements.
+* ``/:`` The rest of the elements after this separator will be right aligned.
+
+<br/>
 
 For example the colour ``BLUE_WHITE`` would have a blue foreground and a white background.
  
@@ -21,6 +43,8 @@ The tool console is very similar in concept and function to VIM's console, it's 
 * ``q`` for quit, cannot quit with unsaved changes.
 * ``qf`` for force quit, quit without saving.
 * ``f <text to find>`` for finding text, does not support regular expressions at the moment.
+
+<br/>
 
 ## Running
 To ensure the editor runs make sure all three necessary files are in the same folder:

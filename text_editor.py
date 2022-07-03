@@ -638,30 +638,84 @@ class TextEditor(utils.CursesUtils):
 
     #Shows the status and help bar.
     def status_bar(self):
-        #Automatically determines what the displayed filename should be, depending on whether or not a name has been given.
-        #Also displays whether or not the file is "dirty", if it's been modified since loading or saving. Shows the FPS meter,
-        #it's mainly there for efficiency testing.
-        filename_text = self.file if self.file != None else "[No filename]"
-        line_text = str(len(self.text)) + " lines"
-        modified_text = " (modified)" if self.buffer_modification_counter > 0 else ""
-        fps_text = "FPS: " + str(self.fps_meter.fps_final_count)
-        left_status_text = filename_text + " - " + line_text + modified_text + " - " + fps_text
-        
-        #The cursor position indicator.
-        right_status_text = str(self.cursor_pos_y + 1) + "," + str(self.cursor_pos_x + 1) + " "
+        left_status_text, right_status_text = self.build_statusbar()
 
         #The complete status bar.
         status_text = left_status_text + " " * (self.x_size - len(left_status_text) - len(right_status_text)) + right_status_text
 
         #Note: In this case we directly access the dictionary instead of using a variable because this only occurs once per
         #program loop.
-        #Print the status bar
+        #Print the status bar.
         self.stdscr.addstr(self.max_displayed_lines, 0, status_text, self.get_colour(self.config_file["STATUS-BAR"]["status-bar-colour"]))
 
         #If the editor prompt is enabled print it.
         if self.prompt.prompt_enabled:
             self.stdscr.addstr(self.max_displayed_lines + 1, 0, self.prompt.prompt, self.get_colour(self.config_file["EDITOR-COLOUR"]["prompt-colour"]))
 
+
+    #Creates the status-bar based on the style in the configuration file.
+    def build_statusbar(self):
+        #If there's nothing for the style return empty strings.
+        if self.config_file["STATUS-BAR"]["status-bar-style"] == None:
+            return "", ""
+
+        #Whether we add elements to the left or right status text
+        switch_right = False
+
+        #Declared so we can append to them without problems
+        left_status_text = ""
+        right_status_text = ""
+
+        #Automatically determines what the displayed filename should be, depending on whether or not a name has been given.
+        filename_text = self.file if self.file != None else "[No filename]"
+        line_text = str(len(self.text)) + " lines"
+        #Whether or not the file is "dirty", if it's been modified since loading or saving.
+        modified_text = " (modified)" if self.buffer_modification_counter > 0 else ""
+        #FPS meter it's mainly there for efficiency testing.
+        fps_text = "FPS: " + str(self.fps_meter.fps_final_count)
+        #The cursors position.
+        cursor_text = str(self.cursor_pos_y + 1) + "," + str(self.cursor_pos_x + 1) + " "
+
+        #A dictionary containing all possible elements for the status bar.
+        status_elements_dict = {"filename" : filename_text, "lines" : line_text, "modified" : modified_text, "fps" : fps_text, "cursor" : cursor_text}
+
+        #Isolates the added elements.
+        status_added_elements = re.findall("\w+", self.config_file["STATUS-BAR"]["status-bar-style"])
+        #Isolates the separators.
+        status_added_separators = re.findall("[-\\\/]", self.config_file["STATUS-BAR"]["status-bar-style"])
+
+        #Create left and right status-bar.
+        for element, separator in zip(status_added_elements, status_added_separators):
+            #The contents are used as a way to avoid repeating the switch check.
+            contents = ""
+
+            match separator:
+                case "-":
+                    contents += " - "
+
+                case "\\":
+                    pass
+
+                case "/":
+                    switch_right = True
+
+                case _:
+                    raise Exception("Invalid separator in statusbar configuration!")
+
+            #Make sure the element exists and is valid.
+            try:
+                #Get proper value from dictionary.
+                contents += status_elements_dict[element]
+            except:
+                raise Exception("Invalid element, \"{}\" in statusbar configuration!".format(element))
+
+            #Check whether the element must be added to left or right status-bar.
+            if switch_right:
+                right_status_text += contents
+            else:
+                left_status_text += contents
+
+        return left_status_text, right_status_text
 
     #Has all the functions that need to be called to properly display all screen elements. It's mostly for ease of use of the
     #"BasicInput" class.

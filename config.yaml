@@ -8,11 +8,11 @@ EDITOR-COLOUR:
     line-colour: BLACK_WHITE #The colour of a line with a number.
     empty-line-colour: WHITE_BLACK #The colour of a line without a number.
     prompt-colour: WHITE_BLACK #The colour of the editor prompt.
-    input-colour: WHITE_BLACK #The colour of input given to the editor
+    input-colour: WHITE_BLACK #The colour of input given to the editor.
 
 STATUS-BAR:
     status-bar-colour: WHITE_BLUE #The colour of the status-bar.
-
+    status-bar-style: \filename-lines\modified-fps/cursor #The configuration of the status bar, see README for an explanation.
 
 MISC:
     confirmation-key-count: 3 #How many times a key has to be pressed to confirm an action.
