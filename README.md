@@ -15,12 +15,14 @@ The editor now has a configuration file, in YAML
 Each colour in the editor is composed of a foreground and background colour, the first one is the foreground colour (The colour of the characters), and the second one the background colour. The colours must be one of the following:
 > ``BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, WHITE, YELLOW``
 
+For example the colour ``BLUE_WHITE`` would have a blue foreground and a white background.
+
 ### Configuring the statusbar
-The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it any way you want.
+The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it in any way you want.
 
 The available elements:
-* ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]`.`
-* ``lines:` The amount of lines the current file has.`
+* ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]``.
+* ``lines:`` The amount of lines the current file has.`
 * ``modified:`` Whether the file has been modified and has unsaved changes.
 * ``fps:`` Displays the FPS the editor is currently running at.
 * ``cursor:`` Shows the position of the cursor, first vertical then horizontal.
@@ -31,8 +33,6 @@ The available separators:
 * ``/:`` The rest of the elements after this separator will be right aligned.
 
 <br/>
-
-For example the colour ``BLUE_WHITE`` would have a blue foreground and a white background.
  
 ## Tool console
 The tool console is very similar in concept and function to VIM's console, it's activated with ``Ctrl+T``. All editor functions can be called from the console. Note that an ``(o)`` next to an argument indicates it's optional. The available commands are:
