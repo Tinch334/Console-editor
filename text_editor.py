@@ -229,16 +229,7 @@ class TextEditor(utils.CursesUtils):
     def detect_key(self):
         #Text characters, this range covers all of extended ASCII.
         if self.key >= 32 and self.key <= 253:
-            #Insert the given char at the current cursor position. Since python strings are immutable we create a new string
-            #consisting of the previous string split where the cursor is plus the added character.
-            text_before = self.text[self.cursor_pos_y].line_text[:self.cursor_pos_x]
-            text_after = self.text[self.cursor_pos_y].line_text[self.cursor_pos_x:]
-            self.text[self.cursor_pos_y].line_text = text_before + chr(self.key) + text_after
-
-            #Move the cursor's position in that line.
-            self.cursor_pos_x += 1
-            #Update the desired cursor position
-            self.desired_cursor_x_pos = self.cursor_pos_x
+            self.insert_char(chr(self.key))
 
             #Disables find function and increments buffer modification counter.
             self.modification_handler()
@@ -292,23 +283,43 @@ class TextEditor(utils.CursesUtils):
         #The actual code given by the enter key is 10, however the rest are left here for compatibility. Beware that
         #"CTRL+J" also has a keycode of 10.
         elif self.key == 10 or self.key == 13 or self.key == curses.KEY_ENTER:
+            #Since the text is accessed multiple times store it in a variable.
+            line_text = self.text[self.cursor_pos_y].line_text
+
             #When enter is pressed all the text to the right of the cursor goes down to the new line.
-            text_before = self.text[self.cursor_pos_y].line_text[:self.cursor_pos_x]
-            text_after = self.text[self.cursor_pos_y].line_text[self.cursor_pos_x:]
+            text_before = line_text[:self.cursor_pos_x]
+            text_after = line_text[self.cursor_pos_x:]
+            #Calculates the amount of spaces at the beginning of the new line by getting the amount of spaces at the
+            #beginning of the old line.
+            spaces_to_add = len(line_text) - len(line_text.lstrip(" "))
 
             #The old line retains what was left of the cursor.
             self.text[self.cursor_pos_y].line_text = text_before
 
             #Create the new line and add corresponding text.
             self.text.insert(self.cursor_pos_y + 1, Line())
-            self.text[self.cursor_pos_y + 1].line_text = text_after
+
+            #Creates the new line by adding the corresponding spaces and then the text that was right of the cursor.
+            self.text[self.cursor_pos_y + 1].line_text = (" " * spaces_to_add) + text_after
 
             self.cursor_pos_y += 1
-            self.cursor_pos_x = 0
-            self.desired_cursor_x_pos = 0
+            self.cursor_pos_x = spaces_to_add
+            self.desired_cursor_x_pos = self.cursor_pos_x
 
             #Disables find function and increments buffer modification counter.
             self.modification_handler()
+
+        #TAB key
+        elif self.key == 9:
+            #Add the remaining spaces to reach the desired tab width.
+            spaces_to_add = 4 - (self.cursor_pos_x % self.config_file["MISC"]["tabstop-width"])
+
+            for x in range(spaces_to_add):
+                self.insert_char(" ")
+
+            #Disables find function and increments buffer modification counter.
+            self.modification_handler()
+
 
         #Moves the cursor. Before doing so check that there's text to move it to.
         elif self.key == curses.KEY_LEFT:
@@ -452,6 +463,19 @@ class TextEditor(utils.CursesUtils):
 
         #Disable the find function since the buffer was modified.
         self.find_results.find_enabled = False
+
+
+    def insert_char(self, char):
+        #Insert the given char at the current cursor position. Since python strings are immutable we create a new string
+        #consisting of the previous string split where the cursor is plus the added character.
+        text_before = self.text[self.cursor_pos_y].line_text[:self.cursor_pos_x]
+        text_after = self.text[self.cursor_pos_y].line_text[self.cursor_pos_x:]
+        self.text[self.cursor_pos_y].line_text = text_before + char + text_after
+
+        #Move the cursor's position in that line.
+        self.cursor_pos_x += 1
+        #Update the desired cursor position
+        self.desired_cursor_x_pos = self.cursor_pos_x
 
 
     """

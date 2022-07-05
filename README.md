@@ -1,4 +1,3 @@
-
 # Console-editor
 A simple console text editor made in Python using the curses library. For now the editor remains not usable for proper coding, mainly due to the lack of syntax highlighting and tabulations.
 
@@ -10,7 +9,8 @@ The console editor requires the following:
 <br/>
 
 ## Configuration file
-The editor now has a configuration file, in YAML
+The editor now has a configuration file, in YAML. Note that an explanation for the fields is also present in the configuration file itself.
+
 ### Colours
 Each colour in the editor is composed of a foreground and background colour, the first one is the foreground colour (The colour of the characters), and the second one the background colour. The colours must be one of the following:
 > ``BLACK, BLUE, CYAN, GREEN, MAGENTA, RED, WHITE, YELLOW``
@@ -19,6 +19,13 @@ For example the colour ``BLUE_WHITE`` would have a blue foreground and a white b
 
 ### Configuring the statusbar
 The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it in any way you want.
+
+### Misc configurations
+Currently there are two "miscellaneous" options in the editor:
+* ``confirmation-key-count:``How many times a key has to be pressed to confirm an action.
+* ``tabstop-width:`` The width of the tab-stops used by the editor, measured in spaces.
+
+
 
 The available elements:
 * ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]``.
@@ -54,6 +61,6 @@ To ensure the editor runs make sure all three necessary files are in the same fo
 
 ### Additional notes:
 * The save and open functions use a relative path. They use the path from the directory in which the program files are located.
-* Tabulations are not yet supported, mainly due to them requiring the rewrite of the display, cursor and scroll handling functions.
+* Tabulations currently work, however they are space based, no actual tab characters are inserted.
 * Copying and pasting text can be done, _however_ it's not supported by the editor. It has to be done using the console, hoping it doesn't produce any problems. It's not reliable in its current state.
 * Syntax highlighting is in the works but is currently too inefficient to be officially added to the editor, specially on large files the performance hit is significant.

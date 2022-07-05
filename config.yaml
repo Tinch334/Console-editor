@@ -16,3 +16,4 @@ STATUS-BAR:
 
 MISC:
     confirmation-key-count: 3 #How many times a key has to be pressed to confirm an action.
+    tab-width: 4 #Width of the tab-stops used by the editor, measured in spaces.
