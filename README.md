@@ -20,13 +20,6 @@ For example the colour ``BLUE_WHITE`` would have a blue foreground and a white b
 ### Configuring the statusbar
 The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it in any way you want.
 
-### Misc configurations
-Currently there are two "miscellaneous" options in the editor:
-* ``confirmation-key-count:``How many times a key has to be pressed to confirm an action.
-* ``tabstop-width:`` The width of the tab-stops used by the editor, measured in spaces.
-
-
-
 The available elements:
 * ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]``.
 * ``lines:`` The amount of lines the current file has.`
@@ -38,6 +31,11 @@ The available separators:
 * ``\:`` An empty separator, nothing will be inserted between the elements.
 * ``-:`` The string ``" - "`` will be inserted between the elements.
 * ``/:`` The rest of the elements after this separator will be right aligned.
+
+### Misc configurations
+Currently there are two "miscellaneous" options in the editor:
+* ``confirmation-key-count:``How many times a key has to be pressed to confirm an action.
+* ``tabstop-width:`` The width of the tab-stops used by the editor, measured in spaces.
 
 <br/>
  
