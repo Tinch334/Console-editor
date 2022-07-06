@@ -12,7 +12,7 @@ EDITOR-COLOUR:
 
 STATUS-BAR:
     status-bar-colour: WHITE_BLUE #The colour of the status-bar.
-    status-bar-style: \filename-lines\modified-fps/cursor #The configuration of the status bar, see README for an explanation.
+    status-bar-style: \filename-lines\modified-fps/time-cursor #The configuration of the status bar, see README for an explanation.
 
 MISC:
     confirmation-key-count: 3 #How many times a key has to be pressed to confirm an action.

@@ -1,4 +1,4 @@
-import utils, curses, curses.ascii, math, os, re, yaml, sys, getopt
+import utils, curses, curses.ascii, math, re, yaml, sys, getopt, datetime, time
 from dataclasses import dataclass, field
 
 
@@ -47,12 +47,12 @@ class Prompt:
 
     def change_prompt(self, new_prompt):
         self.prompt = new_prompt
-        self.restore_time_counter = utils.ms_time()
+        self.restore_time_counter = time.time()
 
 
     #Changes the new prompt back to the default prompt once the specified time has passed. Has to be called each program loop.
     def prompt_handler(self):
-        if utils.ms_time() > self.restore_time_counter + self.restore_time_ms:
+        if time.time() > self.restore_time_counter + self.restore_time_ms:
             self.prompt = self.default_prompt
 
 
@@ -71,11 +71,11 @@ class FPSMeter:
     #Has to be called every "frame" that the program runs. In console applications this function should be called from the
     #main program loop.
     def fps_handler(self):
-        if utils.ms_time() > self.start_time + 1000:
+        if time.time() - self.start_time > 1:
             self.fps_final_count = self.fps_count
             self.fps_count = 0
 
-            self.start_time = utils.ms_time()
+            self.start_time = time.time()
         else:
             self.fps_count += 1
 
@@ -120,8 +120,7 @@ class TextEditor(utils.CursesUtils):
         self.desired_cursor_x_pos = 0
 
         #The text displayed at the bottom of the editor, can be used for messages.
-        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Alt+S - save as | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit | Ctrl+T - tools", 3500)
-        self.fps_meter = FPSMeter()
+        self.prompt = Prompt("COMMANDS: Ctrl+S - save | Alt+S - save as | Ctrl+O - open | Ctrl+F - find | Ctrl+Q - quit | Ctrl+T - tools", 3.5)
 
         #####SCROLLING#####
         #The line to which the editor is scrolled, vertically. IE: the topmost visible line.
@@ -151,6 +150,9 @@ class TextEditor(utils.CursesUtils):
 
         #####CONFIGURATION FILE#####
         self.config_file = None
+
+        #####FPS HANDLING#####
+        self.fps_meter = FPSMeter()
 
         #####NOTES#####
         """
@@ -220,8 +222,6 @@ class TextEditor(utils.CursesUtils):
 
             self.stdscr.refresh()
             self.key = self.stdscr.getch()
-
-
 
     """
     INPUT HANDLING
@@ -699,9 +699,12 @@ class TextEditor(utils.CursesUtils):
         fps_text = "FPS: " + str(self.fps_meter.fps_final_count)
         #The cursors position.
         cursor_text = str(self.cursor_pos_y + 1) + "," + str(self.cursor_pos_x + 1) + " "
+        #Time, only displays hours and minutes, in 24 hs format.
+        current_time = datetime.datetime.now()
+        time_text = "{:02d}:{:02d}".format(current_time.hour, current_time.minute)
 
         #A dictionary containing all possible elements for the status bar.
-        status_elements_dict = {"filename" : filename_text, "lines" : line_text, "modified" : modified_text, "fps" : fps_text, "cursor" : cursor_text}
+        status_elements_dict = {"filename" : filename_text, "lines" : line_text, "modified" : modified_text, "fps" : fps_text, "cursor" : cursor_text, "time" : time_text}
 
         #Isolates the added elements.
         status_added_elements = re.findall("\w+", self.config_file["STATUS-BAR"]["status-bar-style"])
@@ -1015,7 +1018,6 @@ class TextEditor(utils.CursesUtils):
                 curses.endwin()
                 quit()
 
-
             #Find.
             case "f":
                 #In case there are too many or to few arguments
@@ -1030,7 +1032,17 @@ class TextEditor(utils.CursesUtils):
                 if self.argument_count(command_arguments, [], "", "word count function"):
                     return
 
-                self.word_count()
+                words = 0
+
+                #Counts all strings composed of alphanumeric characters separated by spaces.
+                for line in self.text:
+                    for word in line.line_text.split():
+                        if (word.isalpha()):
+                            words += 1
+
+                #Show the count as a prompt
+                self.prompt.change_prompt("There are {} words".format(words))
+
 
             case "j":
                 #In case there are too many or to few arguments
@@ -1088,20 +1100,6 @@ class TextEditor(utils.CursesUtils):
         #If the value
         except:
             return 1
-
-
-    #Counts all words in current files, sets prompt with result.
-    def word_count(self):
-        words = 0
-
-        #Counts all strings composed of alphanumeric characters separated by spaces.
-        for line in self.text:
-            for word in line.line_text.split():
-                if (word.isalpha()):
-                    words += 1
-
-        #Show the count as a prompt
-        self.prompt.change_prompt("There are {} words".format(words))
 
 
 

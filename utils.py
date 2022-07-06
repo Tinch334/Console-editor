@@ -1,5 +1,4 @@
-import curses, time
-
+import curses
 
 
 #A class with functions to use with the curses library, the class that wishes to use the functions must inherit from this one.
@@ -203,7 +202,3 @@ class BasicInput():
             self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), " ", self.cursor_colour)
         else:
             self.class_ref.stdscr.addstr(self.y_pos, self.cursor_pos + len(self.prompt), self.text[self.cursor_pos], self.cursor_colour_over_text)
-
-
-def ms_time():
-    return int(round(time.time() * 1000))
