@@ -1,4 +1,4 @@
-import utils, curses, curses.ascii, math, re, yaml, sys, getopt, datetime, time
+import utils, curses, curses.ascii, math, re, yaml, sys, getopt, datetime, time, os
 from dataclasses import dataclass, field
 
 
@@ -900,41 +900,42 @@ class TextEditor(utils.CursesUtils):
 
             #Re-enable editor prompt.
             self.prompt.toggle_prompt()
+        else:
+            #If a pattern was given assign it to the proper variable.
+            pattern_to_find = pattern
 
-        #The user actually pressed enter and not the escape key.
-        if pattern_to_find != None:
-            #Remove any previous matched text.
-            self.find_results.line_and_index = {}
+        #Remove any previous matched text.
+        self.find_results.line_and_index = {}
 
-            #Used to display how many matches were found using the prompt. It's more efficient to simply have a counter
-            #than accessing a dictionary.
-            match_counter = 0
+        #Used to display how many matches were found using the prompt. It's more efficient to simply have a counter
+        #than accessing a dictionary.
+        match_counter = 0
 
-            #Gets every match in a line and puts it in an array. Then that array is added to the dictionary using the line
-            #as it's key.
-            for y in range(0, len(self.text)):
-                line_matches = []
+        #Gets every match in a line and puts it in an array. Then that array is added to the dictionary using the line
+        #as it's key.
+        for y in range(0, len(self.text)):
+            line_matches = []
                     
-                for match in re.finditer(pattern_to_find, self.text[y].line_text):
-                    line_matches.append(match.start(0))
+            for match in re.finditer(pattern_to_find, self.text[y].line_text):
+                line_matches.append(match.start(0))
 
-                if line_matches != []:
-                    self.find_results.line_and_index[y] = line_matches
-                    #Add the lines matches to the counter.
-                    match_counter += len(line_matches)
+            if line_matches != []:
+                self.find_results.line_and_index[y] = line_matches
+                #Add the lines matches to the counter.
+                match_counter += len(line_matches)
 
-            #Changes the prompt to show how many matches were found for the entered pattern.
-            self.prompt.change_prompt("Found {} matches for \"{}\"".format(match_counter, pattern_to_find))
+        #Changes the prompt to show how many matches were found for the entered pattern.
+        self.prompt.change_prompt("Found {} matches for \"{}\"".format(match_counter, pattern_to_find))
 
-            if len(self.find_results.line_and_index) != 0:
-                #Set the length of the current matched string.
-                self.find_results.matched_text_length = len(pattern_to_find)
-                self.find_results.find_enabled = True
-                self.find_results.current_match_line = 0
+        if len(self.find_results.line_and_index) != 0:
+            #Set the length of the current matched string.
+            self.find_results.matched_text_length = len(pattern_to_find)
+            self.find_results.find_enabled = True
+            self.find_results.current_match_line = 0
 
-                #If matches were found set the cursor to the first one. The match handler can be used to set the cursor
-                #to the current match by just passing 0 as the change.
-                self.match_line_handler(0, self)
+            #If matches were found set the cursor to the first one. The match handler can be used to set the cursor
+            #to the current match by just passing 0 as the change.
+            self.match_line_handler(0, self)
 
 
     """
