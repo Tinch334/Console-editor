@@ -26,6 +26,7 @@ The available elements:
 * ``modified:`` Whether the file has been modified and has unsaved changes.
 * ``fps:`` Displays the FPS the editor is currently running at.
 * ``cursor:`` Shows the position of the cursor, first vertical then horizontal.
+* ``time:`` Shows the current time in twenty-four hour format.
 
 The available separators:
 * ``\:`` An empty separator, nothing will be inserted between the elements.
@@ -47,7 +48,7 @@ The tool console is very similar in concept and function to VIM's console, it's 
 * ``o <filename>`` for open.
 * ``q`` for quit, cannot quit with unsaved changes.
 * ``qf`` for force quit, quit without saving.
-* ``f <text to find>`` for finding text, does not support regular expressions at the moment.
+* ``f <text to find>`` for finding text, supports regular expressions.
 
 <br/>
 

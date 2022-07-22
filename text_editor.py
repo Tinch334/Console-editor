@@ -17,8 +17,9 @@ class Line:
 class SearchMatch:
     #This dictionary contains the line and index of a match. The line is the key for the dictionary entry.
     line_and_index:dict = field(default_factory=dict)
-    #The length of the matched text.
-    matched_text_length:int = 0
+    #This dictionary contains the length of every match found, to account for the possibility of matches with different
+    #lengths.
+    line_match_length:dict = field(default_factory=dict)
     #Whether or not the find function is currently active
     find_enabled:bool = False
     #The line of the the match the cursor was last set to.
@@ -548,7 +549,7 @@ class TextEditor(utils.CursesUtils):
 
             #Update the x position of the cursor. The x position of the cursor is set to the last char of the matched word
             #in case it's out of the screen so it will scroll and show the match.
-            self.cursor_pos_x = self.find_results.line_and_index[self.cursor_pos_y][self.find_results.current_match_number_in_line] + self.find_results.matched_text_length
+            self.cursor_pos_x = self.find_results.line_and_index[self.cursor_pos_y][self.find_results.current_match_number_in_line] + self.find_results.line_match_length[self.cursor_pos_y][self.find_results.current_match_number_in_line]
 
         #Otherwise go to the closest match.
         else:
@@ -564,7 +565,7 @@ class TextEditor(utils.CursesUtils):
             self.cursor_pos_y = closest_line
 
             #Update the x position of the cursor to the first match in that line.
-            self.cursor_pos_x = self.find_results.line_and_index[closest_line][0] + self.find_results.matched_text_length
+            self.cursor_pos_x = self.find_results.line_and_index[closest_line][0] + self.find_results.line_match_length[closest_line][0]
 
 
     """
@@ -587,7 +588,9 @@ class TextEditor(utils.CursesUtils):
         print_x = 0
 
         #The index for the matched text in the current line. If there's no matched text on the line it's set to "None".
-        matched_text_index = 0
+        matched_text_index = None
+        #Same operation as that of "matched_text_index".
+        matched_text_length = None
 
         #Since all the colours are going to be used a significant number of times they are stored in variables. It would be
         #inefficient to access a dictionary several hundred times per cycle.
@@ -617,8 +620,10 @@ class TextEditor(utils.CursesUtils):
                 #search has finished.
                 if self.find_results.find_enabled and y in self.find_results.line_and_index:
                     matched_text_indexes = self.find_results.line_and_index[y]
+                    matched_text_length = self.find_results.line_match_length[y]
                 else:
-                    matched_text_indexes = []
+                    matched_text_indexes = None
+                    matched_text_length = None
 
                 #Print line number. Since we're printing y + 1 we must also use y + 1 in the length calculation with the 
                 #logarithm. This also solves the problem with index 0 since 0 + 1 = 1.
@@ -637,9 +642,10 @@ class TextEditor(utils.CursesUtils):
 
                     #If the current line has matched text that has to be highlighted, and the current x char is on the correct
                     #range highlight it by printing over the original white text.
-                    if matched_text_indexes != []:
-                        for match in matched_text_indexes:
-                            if x >= match and x < match + self.find_results.matched_text_length:
+                    if matched_text_indexes != None and matched_text_length != None:
+                        #Get match and length for each occurrence.
+                        for match, length in zip(matched_text_indexes, matched_text_length):
+                            if x >= match and x < match + length:
                                 self.stdscr.addstr(print_y, print_x, char, self.get_colour(find_match_colour))
 
                     print_x += 1
@@ -914,12 +920,16 @@ class TextEditor(utils.CursesUtils):
         #as it's key.
         for y in range(0, len(self.text)):
             line_matches = []
+            matches_length = []
                     
             for match in re.finditer(pattern_to_find, self.text[y].line_text):
                 line_matches.append(match.start(0))
+                #Gets the length of the match by subtracting it's start index to it's end index.
+                matches_length.append(match.end(0) - match.start(0))
 
             if line_matches != []:
                 self.find_results.line_and_index[y] = line_matches
+                self.find_results.line_match_length[y] = matches_length
                 #Add the lines matches to the counter.
                 match_counter += len(line_matches)
 
@@ -928,7 +938,6 @@ class TextEditor(utils.CursesUtils):
 
         if len(self.find_results.line_and_index) != 0:
             #Set the length of the current matched string.
-            self.find_results.matched_text_length = len(pattern_to_find)
             self.find_results.find_enabled = True
             self.find_results.current_match_line = 0
 
