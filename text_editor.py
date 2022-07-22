@@ -370,7 +370,7 @@ class TextEditor(utils.CursesUtils):
         #"Page Up" and "Page Down" keys.
         elif self.key == curses.KEY_PPAGE:
             if self.find_results.find_enabled:
-                self.match_line_handler(-1, self)
+                self.match_line_handler(-1)
             else:
                 #Move the y cursor "up" by the size of the screen.
                 new_cursor_pos = self.cursor_pos_y - self.max_displayed_lines
@@ -386,7 +386,7 @@ class TextEditor(utils.CursesUtils):
 
         elif self.key == curses.KEY_NPAGE:
             if self.find_results.find_enabled:
-                self.match_line_handler(1, self)
+                self.match_line_handler(1)
             else:
                 #Move the y cursor "down" by the size of the screen.
                 new_cursor_pos = self.cursor_pos_y + self.max_displayed_lines
@@ -398,7 +398,6 @@ class TextEditor(utils.CursesUtils):
                 #So that the cursor moves to the correct x position. This is required because when we change lines we have
                 #to handle the cursor, otherwise we'll be prone to getting index errors.
                 self.interline_cursor_handler(abs(new_cursor_pos - self.cursor_pos_y))
-
 
         #"ESC" key.
         elif self.key == 27:
@@ -519,13 +518,13 @@ class TextEditor(utils.CursesUtils):
     #Allows to choose which of all the matched texts is selected and automatically moves the cursor to it. Performance wise it
     #doesn't matter that this function accesses a dataclass a lot. This is because this function is only called when either
     #"PPAGE" or "NPAGE" are pressed, not every frame.
-    def match_line_handler(self, change, class_ref):
+    def match_line_handler(self, change):
         self.find_results.current_match_number_in_line += change
 
         #Check whether we are on a line with matches, if so cycle through them normally.
         if self.cursor_pos_y in self.find_results.line_and_index:
             #Check if we are on a line with matches. If so check if there are any remaining matches in the current line.
-            if self.find_results.current_match_number_in_line >= len(self.find_results.line_and_index[class_ref.cursor_pos_y]) or self.find_results.current_match_number_in_line < 0:
+            if self.find_results.current_match_number_in_line >= len(self.find_results.line_and_index[self.cursor_pos_y]) or self.find_results.current_match_number_in_line < 0:
                 #Move to the corresponding line depending on what the change was.
                 self.find_results.current_match_line += change
 
@@ -935,7 +934,7 @@ class TextEditor(utils.CursesUtils):
 
             #If matches were found set the cursor to the first one. The match handler can be used to set the cursor
             #to the current match by just passing 0 as the change.
-            self.match_line_handler(0, self)
+            self.match_line_handler(0)
 
 
     """
