@@ -1,5 +1,6 @@
 import utils, curses, curses.ascii, math, re, yaml, sys, getopt, datetime, time, os
 from dataclasses import dataclass, field
+from typing import Union, Callable, Iterable, Any
 
 
 
@@ -16,23 +17,23 @@ class Line:
 @dataclass
 class SearchMatch:
     #This dictionary contains the line and index of a match. The line is the key for the dictionary entry.
-    line_and_index:dict = field(default_factory=dict)
+    line_and_index: dict = field(default_factory=dict)
     #This dictionary contains the length of every match found, to account for the possibility of matches with different
     #lengths.
-    line_match_length:dict = field(default_factory=dict)
+    line_match_length: dict = field(default_factory=dict)
     #Whether or not the find function is currently active
-    find_enabled:bool = False
+    find_enabled: bool = False
     #The line of the the match the cursor was last set to.
-    current_match_line:int = 0
+    current_match_line: int = 0
     #The number of match in the line the cursor was last set to.
-    current_match_number_in_line:int = 0
+    current_match_number_in_line: int = 0
 
 
 
 #A simple prompt, with default text and the option to change it for a specified period of time. Beware that the prompt class
 #only takes care of the actual text of the prompt, printing has to be handled by the user.
 class Prompt:
-    def __init__(self, default_prompt, restore_time_ms):
+    def __init__(self, default_prompt: str, restore_time_ms: int):
         self.default_prompt = default_prompt
         #How long the modified prompt will last in ms before being changed back to the default prompt.
         self.restore_time_ms = restore_time_ms
@@ -42,17 +43,17 @@ class Prompt:
         self.prompt_enabled = True
 
 
-    def toggle_prompt(self):
+    def toggle_prompt(self) -> None:
         self.prompt_enabled = not self.prompt_enabled
 
 
-    def change_prompt(self, new_prompt):
+    def change_prompt(self, new_prompt: str) -> None:
         self.prompt = new_prompt
         self.restore_time_counter = time.time()
 
 
     #Changes the new prompt back to the default prompt once the specified time has passed. Has to be called each program loop.
-    def prompt_handler(self):
+    def prompt_handler(self) -> None:
         if time.time() > self.restore_time_counter + self.restore_time_ms:
             self.prompt = self.default_prompt
 
@@ -62,7 +63,7 @@ class Prompt:
 #is printed, instead it counts how many times it was called in a second. Therefore to use this function it should be placed in
 #your programs main loop so it's called every time it runs.
 class FPSMeter:
-    def __init__(self):
+    def __init__(self) -> None:
         self.start_time = 0
         self.fps_count = 0
         #Use this to get the FPS, it's updated once a second.
@@ -71,7 +72,7 @@ class FPSMeter:
 
     #Has to be called every "frame" that the program runs. In console applications this function should be called from the
     #main program loop.
-    def fps_handler(self):
+    def fps_handler(self) -> None:
         if time.time() - self.start_time > 1:
             self.fps_final_count = self.fps_count
             self.fps_count = 0
@@ -83,7 +84,7 @@ class FPSMeter:
 
 
 class TextEditor(utils.CursesUtils):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         #####CONFIGURATION#####
@@ -163,7 +164,7 @@ class TextEditor(utils.CursesUtils):
 
 
     #Parse any given command line arguments.
-    def parse(self):
+    def parse(self) -> None:
         #Short and long version of all options.
         short_options = "vh"
         long_options = ["version", "help"]
@@ -199,7 +200,7 @@ class TextEditor(utils.CursesUtils):
 
 
     #The setup preformed before the editor starts.
-    def setup(self):
+    def setup(self) -> None:
         #Parses arguments.
         self.parse()
 
@@ -208,7 +209,7 @@ class TextEditor(utils.CursesUtils):
             self.config_file = yaml.safe_load(f)
 
 
-    def editor(self):
+    def editor(self) -> None:
         while True:
             self.stdscr.clear()
             self.get_size()
@@ -227,7 +228,7 @@ class TextEditor(utils.CursesUtils):
     """
     INPUT HANDLING
     """
-    def detect_key(self):
+    def detect_key(self) -> None:
         #Text characters, this range covers all of extended ASCII.
         if self.key >= 32 and self.key <= 253:
             self.insert_char(chr(self.key))
@@ -455,7 +456,7 @@ class TextEditor(utils.CursesUtils):
 
 
     #Handles everting that happens whenever the buffer's modified.
-    def modification_handler(self):
+    def modification_handler(self) -> None:
         #Increment the buffer modification counter.
         self.buffer_modification_counter += 1
         #Whenever the buffer is modified we also reset the number of times "Ctrl+Q" has to be pressed to exit.
@@ -465,7 +466,7 @@ class TextEditor(utils.CursesUtils):
         self.find_results.find_enabled = False
 
 
-    def insert_char(self, char):
+    def insert_char(self, char: str) -> None:
         #Insert the given char at the current cursor position. Since python strings are immutable we create a new string
         #consisting of the previous string split where the cursor is plus the added character.
         text_before = self.text[self.cursor_pos_y].line_text[:self.cursor_pos_x]
@@ -482,7 +483,7 @@ class TextEditor(utils.CursesUtils):
     CURSOR HANDLING
     """
     #Allows for vertical and horizontal scrolling.
-    def scroll_handler(self):
+    def scroll_handler(self) -> None:
         #Vertical scrolling
         #If the cursor is above the scroll line simply make it equal to the cursor.
         if self.cursor_pos_y < self.vertical_scroll_line:
@@ -502,7 +503,7 @@ class TextEditor(utils.CursesUtils):
 
     #Handles what happens when the cursor changes lines via the up and down arrow. "line_index" is the index to the line the
     #cursor is moving, relative to the current line.
-    def interline_cursor_handler(self, line_index):
+    def interline_cursor_handler(self, line_index: int) -> None:
         moving_to_line_length = len(self.text[self.cursor_pos_y + line_index].line_text)
 
         #If the line to move to is shorter than the desired cursor length go to the end of the line.
@@ -519,7 +520,7 @@ class TextEditor(utils.CursesUtils):
     #Allows to choose which of all the matched texts is selected and automatically moves the cursor to it. Performance wise it
     #doesn't matter that this function accesses a dataclass a lot. This is because this function is only called when either
     #"PPAGE" or "NPAGE" are pressed, not every frame.
-    def match_line_handler(self, change):
+    def match_line_handler(self, change: int) -> None:
         self.find_results.current_match_number_in_line += change
 
         #Check whether we are on a line with matches, if so cycle through them normally.
@@ -572,7 +573,7 @@ class TextEditor(utils.CursesUtils):
     PRINTING FUNCTIONS
     """
     #Displays the buffer and cursor. Also handles search function highlighting.
-    def display(self):
+    def display(self) -> None:
         line_count = len(self.text)
         #The number of characters required to fit the line counter.
         line_display_width = int(math.log10(line_count)) + 1
@@ -666,7 +667,7 @@ class TextEditor(utils.CursesUtils):
             
 
     #Shows the status and help bar.
-    def status_bar(self):
+    def status_bar(self) -> None:
         left_status_text, right_status_text = self.build_statusbar()
 
         #The complete status bar.
@@ -683,7 +684,7 @@ class TextEditor(utils.CursesUtils):
 
 
     #Creates the status-bar based on the style in the configuration file.
-    def build_statusbar(self):
+    def build_statusbar(self) -> None:
         #If there's nothing for the style return empty strings.
         if self.config_file["STATUS-BAR"]["status-bar-style"] == None:
             return "", ""
@@ -751,7 +752,7 @@ class TextEditor(utils.CursesUtils):
 
     #Has all the functions that need to be called to properly display all screen elements. It's mostly for ease of use of the
     #"BasicInput" class.
-    def print_screen(self):
+    def print_screen(self) -> None:
         self.display()
         self.status_bar()
 
@@ -760,7 +761,7 @@ class TextEditor(utils.CursesUtils):
     SAVE AND LOAD FUNCTIONS
     """
     #Handles the calling of the actual save function.
-    def save_handler(self, filename = False):
+    def save_handler(self, filename: str = False) -> None:
         #To allow for entering a filename to load
         if filename:
             #Disable editor prompt.
@@ -793,8 +794,8 @@ class TextEditor(utils.CursesUtils):
             self.prompt.change_prompt("Failed to save file, please try again")
 
 
-    #Saves the current file to the given path, returns 1 if it was successful.
-    def save_file(self, path):
+    #Saves the current file to the given path, returns false if it was successful.
+    def save_file(self, path: str) -> bool:
         file_text = ""
 
         try:
@@ -812,15 +813,15 @@ class TextEditor(utils.CursesUtils):
             #Reset the modification counter.
             self.buffer_modification_counter = 0
 
-            return 0
+            return False
 
         #In case an unexpected error occurs.
         except:
-            return 1
+            return True
 
 
     #Handles the calling of the actual load function.
-    def load_handler(self, file = None):
+    def load_handler(self, file: str = None) -> None:
         if file == None:
             #Disable editor prompt.
             self.prompt.toggle_prompt()
@@ -862,8 +863,8 @@ class TextEditor(utils.CursesUtils):
             self.prompt.change_prompt("The entered file doesn't exist")    
 
 
-    #Loads the file in the given path, returns 1 if it was successful.
-    def load_file(self, path):
+    #Loads the file in the given path, returns false if it was successful.
+    def load_file(self, path: str) -> bool:
         try:
             #Empty the text only if the file we are trying to read exists.
             self.text = []
@@ -883,22 +884,22 @@ class TextEditor(utils.CursesUtils):
             #Reset the modification counter.
             self.buffer_modification_counter = 0
 
-            return 0
+            return False
 
         #In case an unexpected error occurs.
         except:
-            return 1
+            return True
 
 
     """
     SEARCH FUNCTIONS
     """
-    def find_handler(self, pattern = None):
+    def find_handler(self, pattern: str = None) -> None:
         if pattern == None:
             #Disable editor prompt.
             self.prompt.toggle_prompt()
 
-            #Get the text to search, doesn't currently support regular expressions.
+            #Get the text to search, supports regular expressions.
             basic_input = utils.BasicInput(self, self.y_size - 1, 0, "Find: ", self.get_colour(self.config_file["EDITOR-COLOUR"]["input-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["normal-cursor-colour"]), self.get_colour(self.config_file["TEXT-COLOUR"]["over-text-cursor-colour"]))
             #The "basic_input" method halts the program.
             pattern_to_find = basic_input.basic_input()
@@ -950,7 +951,7 @@ class TextEditor(utils.CursesUtils):
     TOOL CONSOLE FUNCTIONS
     """
     #Handles the console and processes it's commands.
-    def tool_console_handler(self):
+    def tool_console_handler(self) -> None:
         #Disable editor prompt.
         self.prompt.toggle_prompt()
 
@@ -1068,20 +1069,27 @@ class TextEditor(utils.CursesUtils):
                 #Jump to desired line.
                 self.interline_cursor_handler(new_cursor_pos)
 
+
+            case "r":
+                #In case there are too many or to few arguments
+                if self.argument_count(command_arguments, [str, str], "Please specify a pattern to search and it's replacement", "replace function"):
+                    return
+
+
             case _:
                 self.prompt.change_prompt("Please enter a valid command!")
 
 
-    #Automatically checks if the number of arguments supplied is correct, along with their types. Returns 0 if so, otherwise
-    #returns 1.
-    def argument_count(self, args, args_type, under_text, over_text):
+    #Automatically checks if the number of arguments supplied is correct, along with their types. Returns false if so,
+    #otherwise returns true.
+    def argument_count(self, args: list[str], args_type: list[Union[int, str, bool, float]], under_text: str, over_text: str) -> bool:
         #Make sure the correct number of arguments were passed.
         if (len(args) < len(args_type)):
             self.prompt.change_prompt(under_text)
-            return 1
+            return True
         elif (len(args) > len(args_type)):
             self.prompt.change_prompt("Too many arguments for {}".format(over_text))
-            return 1
+            return True
 
         #Check all arguments against their supposed type. The last variable in the for loop, "arg_num" is used in case
         #there's an error to show the position of the argument.
@@ -1095,20 +1103,20 @@ class TextEditor(utils.CursesUtils):
                 #Change prompt to show type error.
                 self.prompt.change_prompt("Invalid argument type, expected \"{}\" for argument in position {}".format(supposed_type, (arg_num + 1)))
 
-                return 1
+                return True
 
-        return 0
+        return False
 
 
     #Checks the given value against the given type, if successful returns 0.
-    def check_type(self, value, type):
+    def check_type(self, value: Any, type: Callable) -> bool:
         #Tries to cast the value to the given type.
         try:
             type(value)
-            return 0
+            return False
         #If the value
         except:
-            return 1
+            return True
 
 
 

@@ -1,9 +1,11 @@
 import curses
+from typing import final, Union, Callable, Iterable, Any, Type
+
 
 
 #A class with functions to use with the curses library, the class that wishes to use the functions must inherit from this one.
 class CursesUtils():
-    def __init__(self):
+    def __init__(self) -> None:
         self.stdscr = curses.initscr()
 
         #Configure the console
@@ -35,7 +37,8 @@ class CursesUtils():
     #Defines every possible colour pair(without attributes), and then relates their number with the corresponding name in the
     #"self.colours" dictionary. The naming convention is: Foreground colour first and then the background colour, with an
     #underscore separating both colours.
-    def generate_colours(self):
+    @final
+    def generate_colours(self) -> None:
         colour_cont = 1
 
         for col_1 in self.colour_reference:
@@ -51,7 +54,8 @@ class CursesUtils():
 
     #Simplifies using the colour dictionary. Allows the user to use "self.get_colour(colour)" instead of 
     #"curses.color_pair(self.colours[colour])" to select a colour pair.
-    def get_colour(self, colour):
+    @final
+    def get_colour(self, colour: str) -> int:
         try:
             return curses.color_pair(self.colours[colour])
         except:
@@ -60,13 +64,15 @@ class CursesUtils():
 
 
     #Gets the console size.
-    def get_size(self):
+    @final
+    def get_size(self) -> None:
         self.y_size, self.x_size = self.stdscr.getmaxyx()
 
 
     #Prints a centred string at the specified height. If "fill" is True then both sides of the printed text will be filled with
     #the character in "fill_char", using the provided colour.
-    def addctstr(self, y_pos, text, colour, fill = False, fill_char = " "):
+    @final
+    def addctstr(self, y_pos: int, text: str, colour: int, fill: bool = False, fill_char: str = " ") -> None:
         #Shortens the text in case it's larger than the console.
         text = text[:self.x_size - 1]
         x_pos = int((self.x_size - len(text)) / 2)
@@ -80,14 +86,16 @@ class CursesUtils():
 
     #Prints a centred multi-line title. The title has to be a list and all the lines have to have the same length. Otherwise
     #the title won't properly centre.
-    def print_title(self, title, hight, colour):
+    @final
+    def print_title(self, title: str, hight: int, colour: int) -> None:
         if isinstance(title, list) and hight >= 0:
             for a in range(len(title)):
                 self.addctstr(hight + a, title[a], colour)
 
 
     #Exactly the same as "addstr" but can print in the lowermost right corner of the console.
-    def addstrex(self, y_pos, x_pos, string, colour):
+    @final
+    def addstrex(self, y_pos: int, x_pos: int, string: str, colour: int) -> None:
         #Catch the exception caused by printing in the lower right corner of the console.
         try:
             self.stdscr.addstr(y_pos, x_pos, string, colour)
@@ -96,9 +104,11 @@ class CursesUtils():
 
 
 
-#Allows for basic singe line input. Returns the entered string. Still requires the program loop to function.
+#Allows for basic singe line input. Returns the entered string. Still requires the program loop to function. As a note, what
+#this type hint "class_ref: Type[CursesUtils] = CursesUtils", means that "class_ref" should be of type CursesUtils or one of
+#it's descendants.
 class BasicInput():
-    def __init__(self, class_ref, y_pos, x_pos, prompt, colour, cursor_colour, cursor_colour_over_text):
+    def __init__(self, class_ref: Type[CursesUtils], y_pos: int, x_pos: int, prompt: str, colour: int, cursor_colour: int, cursor_colour_over_text: int) -> None:
         #####ARGUMENTS#####
         #A reference to the class that called the function.
         self.class_ref = class_ref
@@ -119,7 +129,7 @@ class BasicInput():
         self.cursor_pos = 0
 
 
-    def basic_input(self):
+    def basic_input(self) -> None:
         while True:
             self.class_ref.stdscr.clear()
             self.class_ref.get_size()
@@ -139,7 +149,7 @@ class BasicInput():
 
 
     #Keys that cause the program to return.
-    def detect_return_key(self):
+    def detect_return_key(self) -> int:
         #Enter key. If pressed returns the entered text.
         if self.class_ref.key == 10 or self.class_ref.key == 13 or self.class_ref.key == curses.KEY_ENTER:
             if self.text != "":
@@ -153,7 +163,7 @@ class BasicInput():
         return -1
 
 
-    def detect_key(self):
+    def detect_key(self) -> None:
         if self.class_ref.key >= 32 and self.class_ref.key <= 253:
             #Insert the given char at the current cursor position. Since python strings are immutable we create a new string
             #consisting of the previous string split where the cursor is plus the added character.
@@ -191,7 +201,7 @@ class BasicInput():
             self.cursor_pos = len(self.text)
 
 
-    def display(self):
+    def display(self) -> None:
         #Print the prompt and entered text.
         self.class_ref.stdscr.addstr(self.y_pos, self.x_pos, self.prompt + self.text, self.colour)
         #Print the escape key reminder.
