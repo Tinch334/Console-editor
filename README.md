@@ -1,12 +1,15 @@
 # Console-editor
-A simple console text editor made in Python using the curses library. For now the editor remains not usable for proper coding, mainly due to the lack of syntax highlighting and tabulations.
+A simple console text editor made in Python using the curses library. For now the editor remains not usable for proper coding, mainly due to the lack of syntax highlighting.
+
+## Important
+The code of this editor is very poor and I highly recommend you don't use it. There's a new improved version, with much better code [here](https://github.com/Tinch334/Console-editor-rewrite).
+
+<br/>
 
 ## Requirements
 The console editor requires the following:
 - Python 3.10 or higher (https://www.python.org/downloads/)
 - The curses module. If you are using Linux then you already have it, if instead you use Windows see (https://pypi.org/project/windows-curses/)
-
-<br/>
 
 ## Configuration file
 The editor now has a configuration file, in YAML. Note that an explanation for the fields is also present in the configuration file itself.
@@ -22,7 +25,7 @@ The status bar is the blue bar at the bottom of the editor, it contains useful i
 
 The available elements:
 * ``filename:`` The name of the file being edited, if it has no name it displays ``[No filename]``.
-* ``lines:`` The amount of lines the current file has.`
+* ``lines:`` The amount of lines the current file has.
 * ``modified:`` Whether the file has been modified and has unsaved changes.
 * ``fps:`` Displays the FPS the editor is currently running at.
 * ``cursor:`` Shows the position of the cursor, first vertical then horizontal.
