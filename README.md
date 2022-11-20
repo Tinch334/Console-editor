@@ -20,7 +20,7 @@ Each colour in the editor is composed of a foreground and background colour, the
 
 For example the colour ``BLUE_WHITE`` would have a blue foreground and a white background.
 
-### Configuring the statusbar
+### Configuring the status-bar
 The status bar is the blue bar at the bottom of the editor, it contains useful information. To customise it the ``status-bar-style`` field in the configuration file can be edited. It consists of elements and separators, elements are the actual information (line count, cursor position, etc) and separators are what goes between them.  It must start with a ``\``, and end with no separator, but after that you can configure it in any way you want.
 
 The available elements:
@@ -50,7 +50,7 @@ The tool console is very similar in concept and function to VIM's console, it's 
 * ``s <filename>(o)`` for save. If no filename is specified the editor will use the current one, if it exists. If a filename is provided then the function will act as "Save as".
 * ``o <filename>`` for open.
 * ``q`` for quit, cannot quit with unsaved changes.
-* ``qf`` for force quit, quit without saving.
+* ``qf`` for forcing the editor to quit without saving.
 * ``f <text to find>`` for finding text, supports regular expressions.
 
 <br/>
@@ -66,3 +66,4 @@ To ensure the editor runs make sure all three necessary files are in the same fo
 * Tabulations currently work, however they are space based, no actual tab characters are inserted.
 * Copying and pasting text can be done, _however_ it's not supported by the editor. It has to be done using the console, hoping it doesn't produce any problems. It's not reliable in its current state.
 * Syntax highlighting is in the works but is currently too inefficient to be officially added to the editor, specially on large files the performance hit is significant.
+
